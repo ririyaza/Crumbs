@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'pages/dashboard.dart';
+
 class RegistrationPage extends StatefulWidget {
   const RegistrationPage({super.key});
 
@@ -186,8 +188,16 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         title: const Text('Success'),
                         content: const Text('Signed up successfully!'),
                         actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(),
+                           TextButton(
+                              onPressed: () {
+                              Navigator.of(context).pop(); 
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const DashboardPage(selectedIndex: 0),
+                                ),
+                              );
+                            },
                             child: const Text('OK'),
                           ),
                         ],
@@ -210,6 +220,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   ),
                 ),
                 onPressed: () {
+                  
                 },
                 child: const Text('Continue with',
                   style: TextStyle(decoration: TextDecoration.underline),

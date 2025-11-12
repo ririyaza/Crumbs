@@ -1,4 +1,5 @@
-import 'package:final_project/PC/pc_registration_page.dart';
+import 'pages/dashboard.dart';
+import 'pc_registration_page.dart';
 import 'package:flutter/material.dart';
 
 class PcLoginPage extends StatefulWidget {
@@ -171,9 +172,17 @@ class _PcLoginPageState extends State<PcLoginPage> {
                         content: const Text('Logged in successfully!'),
                         actions: [
                           TextButton(
-                            onPressed: () => Navigator.of(context).pop(), 
-                            child: const Text('OK'),
-                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const DashboardPage(selectedIndex: 0),
+                              ),
+                            );
+                          },
+                          child: const Text('OK'),
+                        ),
                         ],
                       ),
                     );

@@ -1,6 +1,6 @@
 import 'package:final_project/MOBILE/mobile_login_page.dart';
-import 'package:final_project/PC/pc_login_page.dart';
 import 'package:flutter/material.dart';
+import 'PC/pc_login_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -32,7 +32,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const PcLoginPage(),
+      home: const MobileLoginPage(),
       debugShowCheckedModeBanner: false,
     );
   }

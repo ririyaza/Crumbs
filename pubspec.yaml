@@ -57,6 +57,11 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+  fonts:
+    - family: Century
+      fonts:
+        - asset: assets/fonts/CENTURY.TTF
+
   assets:
       - assets/background.png
       - assets/logo.png

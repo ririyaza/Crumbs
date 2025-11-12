@@ -1,5 +1,7 @@
-import 'package:final_project/MOBILE/mobile_registration_page.dart';
+import 'mobile_registration_page.dart';
 import 'package:flutter/material.dart';
+
+import 'pages/dashboard.dart';
 
 class MobileLoginPage extends StatefulWidget {
   const MobileLoginPage({super.key});
@@ -14,11 +16,11 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
   bool _rememberMe = false;
 
   void _onGoogleSignIn() {
-    // TODO: Hook up Google Sign-In
+   
   }
 
   void _onFacebookSignIn() {
-    // TODO: Hook up Facebook Login
+    
   }
 
   @override
@@ -151,7 +153,7 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
                           alignment: Alignment.centerLeft,
                         ),
                         onPressed: () {
-                          // TODO: Implement forgot password navigation
+                         
                         },
                         child: const Text(
                           'Forgot password?',
@@ -187,10 +189,18 @@ class _MobileLoginPageState extends State<MobileLoginPage> {
                         title: const Text('Success'),
                         content: const Text('Logged in successfully!'),
                         actions: [
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(), 
-                            child: const Text('OK'),
-                          ),
+                         TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MobileDashboardPage(),
+                              ),
+                            );
+                          },
+                          child: const Text('OK'),
+                        ),
                         ],
                       ),
                     );
