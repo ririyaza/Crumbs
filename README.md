@@ -5,3 +5,6 @@
 
 11/12/2025
 - Added navigation bar and pages
+
+11/19/2025
+- Added desktop version for customer
