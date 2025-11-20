@@ -8,3 +8,6 @@
 
 11/19/2025
 - Added desktop version for customer
+
+11/20/2025
+- Added dashboard UI in admin and fixed some pages and icons

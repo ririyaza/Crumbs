@@ -14,8 +14,8 @@ class PcSideNavbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<String> menuItems = [
       'Dashboard',
-      'Order',
-      'Favorite',
+      'Inventory',
+      'Ingredients',
       'Order History',
       'Message',
       'Settings',
@@ -23,8 +23,8 @@ class PcSideNavbar extends StatelessWidget {
 
     final List<IconData> icons = [
       Icons.space_dashboard_outlined,
-      Icons.local_dining,
-      Icons.favorite_border,
+      Icons.inventory,
+      Icons.restaurant_menu,
       Icons.history,
       Icons.mail_outlined,
       Icons.settings,
