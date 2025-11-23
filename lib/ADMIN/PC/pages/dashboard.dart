@@ -25,6 +25,27 @@ class _DashboardPageState extends State<DashboardPage> {
   int _selectedDays = 7;
   int _ingredientDays = 7;
 
+  // Sample data lists - will expand dynamically
+  final List<Map<String, String>> _outOfStockItems = [
+    {
+      'name': 'Chocolate Eclair',
+      'id': '034',
+      'price': '₱350.00',
+    },
+  ];
+
+  final List<Map<String, String>> _topSellingProducts = [
+    {
+      'name': 'Sourdough - Regular',
+      'id': '001',
+      'itemSold': '45',
+      'inStock': '20',
+      'unitPrice': '₱120.00',
+      'totalValue': '₱5,400.00',
+      'status': 'In Stock',
+    },
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -324,14 +345,6 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  String _weekdayLabel(int index) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    if (index >= 0 && index < days.length) {
-      return days[index];
-    }
-    return '';
-  }
-
   Widget _buildOutOfStockCard() {
     return Container(
       padding: const EdgeInsets.all(24),
@@ -363,10 +376,32 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(16),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                _tableHeaderCell('Product Name', flex: 3),
+                _tableHeaderCell('ID'),
+                _tableHeaderCell('Price'),
+              ],
+            ),
+          ),
+          const Divider(),
+          ..._outOfStockItems.map(
+            (item) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  _tableCell(item['name'] ?? '', flex: 3),
+                  _tableCell(item['id'] ?? ''),
+                  _tableCell(item['price'] ?? ''),
+                  IconButton(
+                    icon: const Icon(Icons.more_vert_rounded),
+                    onPressed: () {},
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -405,10 +440,38 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           const SizedBox(height: 16),
           Container(
-            padding: const EdgeInsets.symmetric(vertical: 32),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(16),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                _tableHeaderCell('Product Name', flex: 3),
+                _tableHeaderCell('ID'),
+                _tableHeaderCell('Item Sold'),
+                _tableHeaderCell('In Stock'),
+                _tableHeaderCell('Unit Price'),
+                _tableHeaderCell('Total Value'),
+                _tableHeaderCell('Status', flex: 2),
+              ],
+            ),
+          ),
+          const Divider(),
+          ..._topSellingProducts.map(
+            (row) => Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Row(
+                children: [
+                  _tableCell(row['name'] ?? '', flex: 3),
+                  _tableCell(row['id'] ?? ''),
+                  _tableCell(row['itemSold'] ?? ''),
+                  _tableCell(row['inStock'] ?? ''),
+                  _tableCell(row['unitPrice'] ?? ''),
+                  _tableCell(row['totalValue'] ?? ''),
+                  _tableCell(
+                    row['status'] ?? '',
+                    flex: 2,
+                    align: TextAlign.right,
+                  ),
+                ],
+              ),
             ),
           ),
         ],

@@ -11,7 +11,6 @@ class PcLoginPage extends StatefulWidget {
 class _PcLoginPageState extends State<PcLoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _rememberMe = false;
 
   @override
   Widget build(BuildContext context) {
