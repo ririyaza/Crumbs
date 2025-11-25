@@ -8,7 +8,6 @@ class IngredientsPage extends StatefulWidget {
 }
 
 class _InventoryPageState extends State<IngredientsPage> {
-  // Sample data list - will expand dynamically when new items are added
   final List<Map<String, String>> _inventoryItems = [
     {
       'name': 'Sourdough - Regular',
@@ -21,14 +20,12 @@ class _InventoryPageState extends State<IngredientsPage> {
     },
   ];
 
-  // Adjustable spacing and positioning variables
   static const double _tablePadding = 24;
   static const double _headerSpacing = 24;
   static const double _rowSpacing = 16;
   static const double _columnSpacing = 90;
   static const double _itemNameLeftSpacing = 100;
   
-  // Adjustable column flex values
   static const int _itemNameFlex = 3;
   static const int _idFlex = 1;
   static const int _currentStockFlex = 1;
@@ -86,7 +83,7 @@ class _InventoryPageState extends State<IngredientsPage> {
                 ),
                 onPressed: () {},
                 child: const Text(
-                  '+ New Product',
+                  '+ New Ingredient',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
@@ -187,7 +184,6 @@ class _InventoryPageState extends State<IngredientsPage> {
   }
 
   Widget _buildTableRows() {
-    // Table rows expand dynamically based on data list
     return Column(
       children: _inventoryItems.map(
         (item) => Padding(

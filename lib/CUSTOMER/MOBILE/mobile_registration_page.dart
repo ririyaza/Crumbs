@@ -1,3 +1,4 @@
+import 'package:final_project/database_service.dart';
 import 'package:flutter/material.dart';
 import 'mobile_login_page.dart';
 import 'pages/dashboard.dart';
@@ -10,6 +11,7 @@ class MobileRegistrationPage extends StatefulWidget {
 }
 
 class _MobileRegistrationPageState extends State<MobileRegistrationPage> {
+  final dbServices = DatabaseService();
   final _emailController = TextEditingController();
   final _contactController = TextEditingController();
   final _createPasswordController = TextEditingController();
@@ -218,6 +220,13 @@ class _MobileRegistrationPageState extends State<MobileRegistrationPage> {
                             textStyle: const TextStyle(fontWeight: FontWeight.bold),
                           ),
                           onPressed: () {
+    
+                            dbServices.registerUser(
+                              _emailController.text,
+                              _emailController.text,
+                              _contactController.text,
+                              _createPasswordController.text
+                            );
                       
                             showDialog(
                               context: context,

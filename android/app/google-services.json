@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "448470896814",
+    "project_id": "crumbs-24265",
+    "storage_bucket": "crumbs-24265.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:448470896814:android:e00093aa5533034f68dd3f",
+        "android_client_info": {
+          "package_name": "com.example.final_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCvXdfcLtuxwt5uDa47bkGyq-ss9Ik9C6s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

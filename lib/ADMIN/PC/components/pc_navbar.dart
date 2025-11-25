@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../pc_login_page.dart';
 
 class PcSideNavbar extends StatelessWidget {
   final int selectedIndex;
@@ -100,7 +101,8 @@ class PcSideNavbar extends StatelessWidget {
                       children: [
                         Container(
                           width: 180,
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 8, horizontal: 16),
                           decoration: isSelected
                               ? BoxDecoration(
                                   color: Colors.green[800],
@@ -118,7 +120,9 @@ class PcSideNavbar extends StatelessWidget {
                                 menuItems[index],
                                 style: TextStyle(
                                   color: isSelected ? Colors.white : Colors.black,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                 ),
                               ),
                             ],
@@ -129,6 +133,40 @@ class PcSideNavbar extends StatelessWidget {
                   ),
                 );
               },
+            ),
+          ),
+
+          const SizedBox(height: 20),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 20),
+            child: Center(
+              child: InkWell(
+                onTap: () {
+                  Navigator.pushReplacement(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => const PcLoginPage(),
+                      transitionDuration: Duration.zero,
+                      reverseTransitionDuration: Duration.zero,
+                    ),
+                  );
+                },
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.logout, color: Colors.black),
+                    SizedBox(width: 8),
+                    Text(
+                      "Logout",
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
