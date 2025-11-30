@@ -20,3 +20,9 @@
 
 11/26/2025
 - Realtime updates data in inventory, can choose image for profile picture but cannot save yet, same goes for the product pictures
+
+11/28/2025
+- Added forms upon clicking buttons in ingredient, realtime updates data in ingredient, order history UI
+
+11/30/2025
+- Added reflected out of stock items in the dashboard, added dashboard UI for customers, added order UI for customers

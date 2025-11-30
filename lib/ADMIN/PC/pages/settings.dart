@@ -72,7 +72,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     onPressed: () async {
                       final result = await FilePicker.platform.pickFiles(
                         type: FileType.image,
-                        withData: true, // important for web
+                        withData: true,
                       );
 
                       if (result != null) {

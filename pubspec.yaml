@@ -72,7 +72,19 @@ flutter:
       - assets/logo.png
       - assets/google_logo.png
       - assets/mobile_design.png
-
+      - assets/banner.png
+      - assets/cat_0.jpg
+      - assets/cat_1.jpg
+      - assets/cat_2.jpg
+      - assets/cat_3.jpg
+      - assets/cat_4.jpg
+      - assets/cat_5.jpg
+      - assets/pop_0.jpg
+      - assets/pop_1.jpg
+      - assets/pop_2.jpg
+      - assets/sourdough.jpg
+      - assets/strawberry-cake.jpg
+      - assets/croissant.jpg
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg

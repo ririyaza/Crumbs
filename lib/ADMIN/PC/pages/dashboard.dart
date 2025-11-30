@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../components/pc_navbar.dart';
+import 'package:firebase_database/firebase_database.dart';
+import '../../../database_service.dart';
 import 'inventory.dart';
 import 'ingredients.dart';
 import 'order_history.dart';
@@ -15,6 +17,8 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  final dbServices = DatabaseService();
+  late DatabaseReference productRef;
   late int selectedIndex;
 
   final TextEditingController _searchController = TextEditingController();
@@ -25,31 +29,21 @@ class _DashboardPageState extends State<DashboardPage> {
   int _selectedDays = 7;
   int _ingredientDays = 7;
 
-  // Sample data lists - will expand dynamically
   final List<Map<String, String>> _outOfStockItems = [
-    {
-      'name': 'Chocolate Eclair',
-      'id': '034',
-      'price': '₱350.00',
-    },
+    {},
   ];
 
   final List<Map<String, String>> _topSellingProducts = [
-    {
-      'name': 'Sourdough - Regular',
-      'id': '001',
-      'itemSold': '45',
-      'inStock': '20',
-      'unitPrice': '₱120.00',
-      'totalValue': '₱5,400.00',
-      'status': 'In Stock',
-    },
+    {},
   ];
 
   @override
   void initState() {
     super.initState();
     selectedIndex = widget.selectedIndex;
+
+    productRef = dbServices.firebaseDatabase.child('Product');
+    fetchOutOfStockProducts();
   }
 
   @override
@@ -193,8 +187,9 @@ class _DashboardPageState extends State<DashboardPage> {
               Expanded(
                 child: _buildStatCard(
                   title: 'Out of Stock',
-                  value: '—',
+                  value: '${_outOfStockItems.length}',
                   subtitle: ' ',
+                  valueColor: Colors.red[600],
                 ),
               ),
             ],
@@ -235,54 +230,57 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Widget _buildStatCard({
-    required String title,
-    required String value,
-    required String subtitle,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
+  required String title,
+  required String value,
+  required String subtitle,
+  Color? valueColor, 
+}) {
+  return Container(
+    padding: const EdgeInsets.all(24),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 20,
+          offset: const Offset(0, 10),
+        ),
+      ],
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 16,
+            color: const Color.fromARGB(255, 0, 0, 0),
+            fontWeight: FontWeight.bold,
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 16,
-              color: const Color.fromARGB(255, 0, 0, 0),
-              fontWeight: FontWeight.bold,
-            ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: valueColor ?? Colors.black,
           ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          subtitle,
+          style: TextStyle(
+            fontSize: 14,
+            color: const Color.fromARGB(255, 0, 0, 0),
           ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: TextStyle(
-              fontSize: 14,
-              color: const Color.fromARGB(255, 0, 0, 0),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
+
 
   Widget _buildSalesCard() {
     return Container(
@@ -630,4 +628,34 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
     );
   }
+
+  void fetchOutOfStockProducts() {
+  productRef.onValue.listen((event) {
+    final snapshot = event.snapshot;
+    if (snapshot.exists) {
+      List<Map<String, String>> products = [];
+      for (var child in snapshot.children) {
+        final data = child.value as Map<dynamic, dynamic>;
+        final inStock = int.tryParse(data['quantity'].toString()) ?? 0;
+
+        if (inStock == 0) {
+          products.add({
+            'id': data['product_id'].toString(),
+            'name': data['product_name'].toString(),
+            'price': '₱${data['unit_price'].toString()}',
+          });
+        }
+      }
+
+      setState(() {
+        _outOfStockItems.clear();
+        _outOfStockItems.addAll(products);
+      });
+    } else {
+      setState(() {
+        _outOfStockItems.clear();
+      });
+    }
+  });
+}
 }

@@ -717,6 +717,10 @@ void _showAddNewProductDialog(BuildContext context) {
                               });
 
                               Navigator.of(context).pop();
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('New product added successfully!')),
+                              );
                             }
                           },
                           child: const Text(
