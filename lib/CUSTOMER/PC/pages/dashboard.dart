@@ -7,7 +7,8 @@ import 'message.dart';
 import 'settings.dart';
 
 class DashboardContent extends StatelessWidget {
-  const DashboardContent({super.key});
+  final VoidCallback? onOrderNowPressed;
+  const DashboardContent({super.key, this.onOrderNowPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +29,7 @@ class DashboardContent extends StatelessWidget {
                     borderRadius: BorderRadius.circular(20),
                     image: const DecorationImage(
                       image: AssetImage("assets/banner.png"),
-                      fit: BoxFit.fill,
+                      fit: BoxFit.cover,
                     ),
                   ),
                   padding: const EdgeInsets.all(24),
@@ -78,7 +79,7 @@ class DashboardContent extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                               ),
-                              onPressed: () {},
+                              onPressed: onOrderNowPressed,
                               child: const Text(
                                 "Order Now",
                                 style: TextStyle(fontSize: 18, color: Colors.white),
@@ -148,7 +149,7 @@ class DashboardContent extends StatelessWidget {
                               "assets/pop_$i.jpg",
                               height: 150,
                               width: double.infinity,
-                              fit: BoxFit.fill,
+                              fit: BoxFit.cover,
                             ),
                           ),
                           Padding(
@@ -222,7 +223,7 @@ class DashboardContent extends StatelessWidget {
                 border: Border.all(color: Colors.grey.shade300, width: 1.5),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, // labels stay left
+                crossAxisAlignment: CrossAxisAlignment.start, 
                 children: [
                   Container(
                     height: 240,
@@ -449,16 +450,6 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   late int selectedIndex;
-
-  final List<Widget> pages = [
-    const DashboardContent(),
-    const OrderPage(),
-    const FavoritePage(),
-    const OrderHistoryPage(),
-    const MessagePage(),
-    const SettingsPage(),
-  ];
-
   final TextEditingController _searchController = TextEditingController();
   final double _profileSize = 66;
   final double _searchWidth = 720;
@@ -471,6 +462,22 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Create pages here, so you can pass callbacks safely
+    final pages = [
+      DashboardContent(
+        onOrderNowPressed: () {
+          setState(() {
+            selectedIndex = 1; // Navigate to OrderPage
+          });
+        },
+      ),
+      const OrderPage(),
+      const FavoritePage(),
+      const OrderHistoryPage(),
+      const MessagePage(),
+      const SettingsPage(),
+    ];
+
     return Scaffold(
       body: Row(
         children: [
@@ -485,6 +492,7 @@ class _DashboardPageState extends State<DashboardPage> {
           Expanded(
             child: Column(
               children: [
+                // Top bar with search and profile
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
                   child: Row(
@@ -547,7 +555,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             radius: _profileSize / 2,
                             backgroundColor: Colors.black87,
                             child: const Text(
-                              'F',
+                              'C',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 18,

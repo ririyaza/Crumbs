@@ -58,7 +58,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 backgroundImage: avatarImage,
                 child: avatarImage == null
                     ? const Text(
-                        "F",
+                        "C",
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 40,

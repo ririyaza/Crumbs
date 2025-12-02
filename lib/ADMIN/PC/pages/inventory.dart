@@ -1,8 +1,18 @@
+import 'dart:convert';
+
 import 'package:final_project/database_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
+
+Future<String> saveImageLocally(Uint8List bytes, String fileName) async {
+  final dir = Directory('${Directory.current.path}/local_images');
+  final file = File('${dir.path}/$fileName');
+  await file.writeAsBytes(bytes);
+  return file.path;
+}
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -476,9 +486,11 @@ void _showAddNewProductDialog(BuildContext context) {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final TextEditingController flavorController = TextEditingController();
+  
   String selectedCategory = 'Please choose a category';
   final List<String> categories = ['Please choose a category', 'Bread', 'Sourdough', 'Biscotti', 'Cookies', 'Cakes', 'Pie'];
 
+  // ✅ Move these outside so they're in scope for the entire dialog
   String? selectedImagePath;
   Uint8List? selectedImageBytes;
   bool _isHovering = false;
@@ -565,7 +577,9 @@ void _showAddNewProductDialog(BuildContext context) {
                         },
                         decoration: const InputDecoration(border: OutlineInputBorder()),
                         validator: (value) {
-                          if (value == null || value.isEmpty) return 'Please select a category';
+                          if (value == null || value.isEmpty || value == 'Please choose a category') {
+                            return 'Please select a category';
+                          }
                           return null;
                         },
                       ),
@@ -597,12 +611,11 @@ void _showAddNewProductDialog(BuildContext context) {
                                     : null,
                               ),
                             ),
-                            if (selectedImageBytes != null)
+                            if (selectedImageBytes != null && selectedImagePath != null)
                               Center(
                                 child: Text(
                                   selectedImagePath!,
-                                  style: const TextStyle(
-                                      color: Colors.white, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                                   textAlign: TextAlign.center,
                                 ),
                               ),
@@ -627,29 +640,6 @@ void _showAddNewProductDialog(BuildContext context) {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          CircleAvatar(
-                            radius: 10,
-                            backgroundColor: Colors.green,
-                            child: const Icon(Icons.check, size: 16, color: Colors.white),
-                          ),
-                          const SizedBox(width: 8),
-                          const Text('Valid format: Document name.png'),
-                          const Spacer(),
-                          if (selectedImageBytes != null)
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  selectedImageBytes = null;
-                                  selectedImagePath = null;
-                                });
-                              },
-                              child: const Icon(Icons.delete, color: Colors.red),
-                            ),
-                        ],
-                      ),
                       const SizedBox(height: 16),
                       const Text('Product Price', style: TextStyle(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
@@ -662,18 +652,6 @@ void _showAddNewProductDialog(BuildContext context) {
                           if (double.tryParse(value) == null) return 'Price must be a number';
                           return null;
                         },
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: const [
-                          CircleAvatar(
-                            radius: 10,
-                            backgroundColor: Colors.green,
-                            child: Icon(Icons.check, size: 16, color: Colors.white),
-                          ),
-                          SizedBox(width: 8),
-                          Text('Charged with tax'),
-                        ],
                       ),
                       const SizedBox(height: 16),
                       const Text('Flavor', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -696,30 +674,52 @@ void _showAddNewProductDialog(BuildContext context) {
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           ),
                           onPressed: () async {
-                            if (_formKey.currentState!.validate()) {
-                              if (selectedImageBytes == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Please select a product image')),
-                                );
-                                return;
-                              }
+                            if (!_formKey.currentState!.validate()) return;
 
-                              final String path = 'Product/${idController.text}';
-                              await dbServices.create(path: path, data: {
+                            if (selectedImageBytes == null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Please select a product image')),
+                              );
+                              return;
+                            }
+
+                            try {
+                              String base64Image = base64Encode(selectedImageBytes!);
+
+                              final String dbPath = 'Product/${idController.text}';
+                              await dbServices.create(path: dbPath, data: {
                                 'product_id': idController.text,
                                 'product_name': nameController.text,
                                 'product_category': selectedCategory,
-                                'product_image': selectedImagePath,
+                                'product_image': base64Image,
                                 'unit_price': priceController.text,
                                 'flavor': flavorController.text,
                                 'status': 'In Stock',
                                 'quantity': '0',
+                                'item_sold': '0',
+                                'total_value': '₱0.00',
+                              });
+
+                              setState(() {
+                                _inventoryItems.add({
+                                  'id': idController.text,
+                                  'name': nameController.text,
+                                  'inStock': '0',
+                                  'unitPrice': '₱${priceController.text}',
+                                  'status': 'In Stock',
+                                  'product_image': base64Image,
+                                  'itemSold': '0',
+                                  'totalValue': '₱0.00',
+                                });
                               });
 
                               Navigator.of(context).pop();
-
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('New product added successfully!')),
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Error adding product: $e')),
                               );
                             }
                           },
@@ -740,6 +740,8 @@ void _showAddNewProductDialog(BuildContext context) {
     },
   );
 }
+
+
 
 
 

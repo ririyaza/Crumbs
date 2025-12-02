@@ -26,3 +26,6 @@
 
 11/30/2025
 - Added reflected out of stock items in the dashboard, added dashboard UI for customers, added order UI for customers
+
+12/01/2025
+- The data of products in customer side is now reflected in the Order page. Categories are now clickable in the Order Page. Added image and quantity selector when adding products to cart.
