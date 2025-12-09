@@ -179,6 +179,74 @@ class DatabaseService {
   return false;
 }
 
+Future<bool> validateCustomerLogin({
+  required String username,
+  required String password,
+}) async {
+  try {
+    final snapshot = await _firebaseDatabase.child('Customer').get();
+
+    if (!snapshot.exists || snapshot.value == null) {
+      return false;
+    }
+
+    final data = snapshot.value;
+
+    if (data is List) {
+      for (var entry in data) {
+        if (entry == null) continue; 
+
+        final user = Map<String, dynamic>.from(entry);
+
+        if (user['customer_email'] == username &&
+            user['customer_password'] == password) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    if (data is Map) {
+      for (var entry in data.values) {
+        final user = Map<String, dynamic>.from(entry);
+
+        if (user['customer_email'] == username &&
+            user['customer_password'] == password) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    return false;
+  } catch (e) {
+    print("Login error: $e");
+    return false;
+  }
+}
+
+Future<Map<String, dynamic>?> getCustomerByLogin({
+  required String username,
+  required String password,
+}) async {
+  final snapshot = await _firebaseDatabase
+      .child('Customer')
+      .orderByChild('customer_email')
+      .equalTo(username)
+      .get();
+
+  if (snapshot.exists) {
+    final customers = snapshot.value as Map<dynamic, dynamic>;
+    for (var customer in customers.values) {
+      if (customer['customer_password'] == password) {
+        return Map<String, dynamic>.from(customer); 
+      }
+    }
+  }
+  return null;
+}
+
+
  Future<String> uploadProductImage(String productId, Uint8List imageBytes) async {
     final storageRef = FirebaseStorage.instance.ref('products/$productId.png');
     await storageRef.putData(imageBytes);

@@ -29,3 +29,9 @@
 
 12/01/2025
 - The data of products in customer side is now reflected in the Order page. Categories are now clickable in the Order Page. Added image and quantity selector when adding products to cart.
+
+12/07/2025
+- Added actions for updating stocks and prices, added actions for updating ingredients stocks, reserved and threshold, added actions for deleting product/ingredient, Add functionalities to the settings
+
+12/09/2025
+- Added login and sign up validation for customer, add functionalities to the settings

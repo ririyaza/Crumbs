@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class MessagePage extends StatelessWidget {
-  const MessagePage({super.key});
+  final String customerId;
+  const MessagePage({super.key, required this.customerId});
 
   @override
   Widget build(BuildContext context) {

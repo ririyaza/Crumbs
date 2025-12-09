@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import '../../../database_service.dart';
 import '../components/pc_navbar.dart';
 import 'order.dart';
 import 'favorite.dart';
@@ -442,27 +445,50 @@ class _ScrollableCategoriesState extends State<_ScrollableCategories> {
 
 class DashboardPage extends StatefulWidget {
   final int selectedIndex;
-  const DashboardPage({super.key, this.selectedIndex = 0});
+  final String customerId;
+  const DashboardPage({super.key, this.selectedIndex = 0, required this.customerId});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
 class _DashboardPageState extends State<DashboardPage> {
+  String staffName = 'Customer';
+  ImageProvider? staffImage;
   late int selectedIndex;
   final TextEditingController _searchController = TextEditingController();
   final double _profileSize = 66;
   final double _searchWidth = 720;
 
+  final DatabaseService dbServices = DatabaseService();
+
   @override
   void initState() {
     super.initState();
     selectedIndex = widget.selectedIndex;
+    _loadCustomerProfile(); // Fetch profile from database
+  }
+
+  Future<void> _loadCustomerProfile() async {
+    final snapshot = await dbServices.read(path: 'Customer/${widget.customerId}');
+    if (snapshot != null && snapshot.value != null) {
+      final data = snapshot.value as Map<dynamic, dynamic>;
+      setState(() {
+        final firstName = data['customer_Fname'] ?? 'Customer';
+        final lastName = data['customer_Lname'] ?? '';
+        staffName = '$firstName $lastName'.trim();
+
+        if (data['profile_image'] != null) {
+          staffImage = MemoryImage(base64Decode(data['profile_image']));
+        } else {
+          staffImage = null;
+        }
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Create pages here, so you can pass callbacks safely
     final pages = [
       DashboardContent(
         onOrderNowPressed: () {
@@ -471,11 +497,19 @@ class _DashboardPageState extends State<DashboardPage> {
           });
         },
       ),
-      const OrderPage(),
-      const FavoritePage(),
-      const OrderHistoryPage(),
-      const MessagePage(),
-      const SettingsPage(),
+      OrderPage(customerId: widget.customerId),
+      FavoritePage(customerId: widget.customerId),
+      OrderHistoryPage(customerId: widget.customerId),
+      MessagePage(customerId: widget.customerId),
+      SettingsPage(
+        customerId: widget.customerId,
+        onProfileUpdate: (name, imageBytes) {
+          setState(() {
+            staffName = name;
+            staffImage = imageBytes != null ? MemoryImage(imageBytes) : null;
+          });
+        },
+      ),
     ];
 
     return Scaffold(
@@ -541,9 +575,9 @@ class _DashboardPageState extends State<DashboardPage> {
                       const Spacer(),
                       Row(
                         children: [
-                          const Text(
-                            'Customer',
-                            style: TextStyle(
+                          Text(
+                            staffName,
+                            style: const TextStyle(
                               fontWeight: FontWeight.w600,
                               fontSize: 22,
                             ),
@@ -554,14 +588,17 @@ class _DashboardPageState extends State<DashboardPage> {
                           CircleAvatar(
                             radius: _profileSize / 2,
                             backgroundColor: Colors.black87,
-                            child: const Text(
-                              'C',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            backgroundImage: staffImage,
+                            child: staffImage == null
+                                ? const Text(
+                                    'C',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  )
+                                : null,
                           ),
                         ],
                       ),

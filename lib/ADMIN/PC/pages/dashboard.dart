@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import '../components/pc_navbar.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -20,6 +22,8 @@ class _DashboardPageState extends State<DashboardPage> {
   final dbServices = DatabaseService();
   late DatabaseReference productRef;
   late int selectedIndex;
+  String staffName = 'Staff';
+  ImageProvider? staffImage;
 
   final TextEditingController _searchController = TextEditingController();
   final double _searchBorderRadius = 12;
@@ -40,6 +44,7 @@ class _DashboardPageState extends State<DashboardPage> {
   @override
   void initState() {
     super.initState();
+    _fetchStaffProfile();
     selectedIndex = widget.selectedIndex;
 
     productRef = dbServices.firebaseDatabase.child('Product');
@@ -110,40 +115,63 @@ class _DashboardPageState extends State<DashboardPage> {
           ),
           const SizedBox(width: 24),
           const Spacer(),
-          Row(
-            children: [
-              const Text(
-                'Staff',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 22,
-                ),
+         Row(
+          children: [
+            Text(
+              staffName, 
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 22,
               ),
-              const SizedBox(width: 4),
-              const Icon(
-                Icons.arrow_drop_down,
-                color: Colors.black87,
-                size: 60,
-              ),
-              const SizedBox(width: 5),
-              CircleAvatar(
-                radius: _profileSize / 2,
-                backgroundColor: Colors.black87,
-                child: const Text(
-                  'S',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.arrow_drop_down,
+              color: Colors.black87,
+              size: 60,
+            ),
+            const SizedBox(width: 5),
+            CircleAvatar(
+              radius: _profileSize / 2,
+              backgroundColor: Colors.black87,
+              backgroundImage: staffImage,
+              child: staffImage == null
+                  ? Text(
+                      staffName.isNotEmpty ? staffName[0] : "S",
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    )
+                  : null,
+            ),
+          ],
+        ),
         ],
       ),
     );
   }
+
+ void _fetchStaffProfile() async {
+    final snapshot = await dbServices.read(path: 'Staff/1'); 
+  if (snapshot != null && snapshot.value != null) {
+    final data = snapshot.value as Map<dynamic, dynamic>;
+    setState(() {
+      final fName = data['staff_Fname'] ?? '';
+      final lName = data['staff_Lname'] ?? '';
+      staffName = '$fName $lName'.trim();
+
+      if (data['profile_image'] != null) {
+        staffImage = MemoryImage(base64Decode(data['profile_image']));
+      } else {
+        staffImage = null;
+      }
+    });
+  }
+}
+
+
 
   Widget _buildDashboardContent() {
     return SingleChildScrollView(
@@ -378,7 +406,6 @@ class _DashboardPageState extends State<DashboardPage> {
             child: Row(
               children: [
                 _tableHeaderCell('Product Name', flex: 3),
-                _tableHeaderCell('ID'),
                 _tableHeaderCell('Price'),
               ],
             ),
@@ -390,14 +417,7 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Row(
                 children: [
                   _tableCell(item['name'] ?? '', flex: 3),
-                  _tableCell(item['id'] ?? ''),
                   _tableCell(item['price'] ?? ''),
-                  IconButton(
-                    icon: const Icon(Icons.more_vert_rounded),
-                    onPressed: () {},
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
                 ],
               ),
             ),
@@ -596,7 +616,18 @@ class _DashboardPageState extends State<DashboardPage> {
       case 4:
         return const MessagePage();
       case 5:
-        return const SettingsPage();
+        return SettingsPage(
+          onProfileUpdate: (name, imageBytes) {
+            setState(() {
+              staffName = name; 
+              if (imageBytes != null) {
+                staffImage = MemoryImage(imageBytes);
+              } else {
+                staffImage = null; 
+              }
+            });
+          },
+        );
       default:
         return const SizedBox.shrink();
     }

@@ -3,16 +3,8 @@ import 'dart:convert';
 import 'package:final_project/database_service.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
-
-Future<String> saveImageLocally(Uint8List bytes, String fileName) async {
-  final dir = Directory('${Directory.current.path}/local_images');
-  final file = File('${dir.path}/$fileName');
-  await file.writeAsBytes(bytes);
-  return file.path;
-}
 
 class InventoryPage extends StatefulWidget {
   const InventoryPage({super.key});
@@ -24,8 +16,7 @@ class InventoryPage extends StatefulWidget {
 class _InventoryPageState extends State<InventoryPage> {
   final dbServices = DatabaseService();
   late DatabaseReference productRef;
-  
-  List<Map<String, String>> _inventoryItems =[];
+  List<Map<String, dynamic>> _inventoryItems = [];
   bool isLoading = true;
 
   void initState() {
@@ -36,12 +27,9 @@ class _InventoryPageState extends State<InventoryPage> {
 
   static const double _tablePadding = 24;
   static const double _headerSpacing = 24;
-  static const double _rowSpacing = 16;
-  static const double _columnSpacing = 120;
-  static const double _productNameLeftSpacing = 100;
+  static const double _rowSpacing = 32;
   
-  static const int _productNameFlex = 3;
-  static const int _idFlex = 1;
+  static const int _productNameFlex = 2;
   static const int _itemSoldFlex = 1;
   static const int _inStockFlex = 1;
   static const int _unitPriceFlex = 1;
@@ -63,27 +51,6 @@ class _InventoryPageState extends State<InventoryPage> {
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00B027),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 4,
-                ),
-                onPressed: () {
-                  _showAddStockDialog(context);
-                },
-                child: const Text(
-                  '+ Add Stock',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
                   ),
                 ),
               ),
@@ -119,334 +86,437 @@ class _InventoryPageState extends State<InventoryPage> {
   }
 
   Widget _buildInventoryTable() {
-    return Container(
-      padding: const EdgeInsets.all(_tablePadding),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Recently Added (${_inventoryItems.length} items)',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              GestureDetector(
-                onTap: () {},
-                child: const Text(
-                  'View All Recent Items',
-                  style: TextStyle(
-                    color: Colors.black87,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: _headerSpacing),
-          _buildTableHeader(),
-          const Divider(height: 32),
-          _buildTableRows()
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTableHeader() {
-    return Row(
-      children: [
-        SizedBox(width: _productNameLeftSpacing),
-        _buildHeaderCell('Product Name', flex: _productNameFlex),
-        SizedBox(width: _columnSpacing),
-        _buildHeaderCell('ID', flex: _idFlex),
-        SizedBox(width: _columnSpacing),
-        _buildHeaderCell('Item Sold', flex: _itemSoldFlex),
-        SizedBox(width: _columnSpacing),
-        _buildHeaderCell('In Stock', flex: _inStockFlex),
-        SizedBox(width: _columnSpacing),
-        _buildHeaderCell('Unit Price', flex: _unitPriceFlex),
-        SizedBox(width: _columnSpacing),
-        _buildHeaderCell('Total Value', flex: _totalValueFlex),
-        SizedBox(width: _columnSpacing),
-        _buildHeaderCell('Status', flex: _statusFlex),
+  return Container(
+    padding: const EdgeInsets.fromLTRB(16, _tablePadding, _tablePadding, _tablePadding),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(24),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withOpacity(0.05),
+          blurRadius: 20,
+          offset: const Offset(0, 10),
+        ),
       ],
-    );
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Recently Added (${_inventoryItems.length} items)',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            GestureDetector(
+              onTap: () {},
+              child: const Text(
+                'View All Recent Items',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),  
+        SizedBox(height: _headerSpacing),
+        _buildTableHeader(),
+        const Divider(height: 32),
+        _buildTableRows()
+      ],
+    ),
+  );
+}
+
+  Widget _buildStockStatus(int inStock) {
+  Color bgColor;
+  Color borderColor;
+  String statusText;
+
+  if (inStock == 0) {
+    bgColor = Colors.red.shade100;
+    borderColor = Colors.red;
+    statusText = 'Out of Stock';
+  } else if (inStock < 10) {
+    bgColor = Colors.yellow.shade100;
+    borderColor = Colors.orange;
+    statusText = 'Low Stock';
+  } else {
+    bgColor = Colors.green.shade100;
+    borderColor = Colors.green;
+    statusText = 'In Stock';
   }
 
-  Widget _buildHeaderCell(String text, {int flex = 1}) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        text,
-        style: TextStyle(
-          color: Colors.grey.shade600,
-          fontWeight: FontWeight.w600,
-          fontSize: 14,
-        ),
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: bgColor,
+      border: Border.all(color: borderColor),
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(
+      statusText,
+      style: TextStyle(
+        color: borderColor,
+        fontWeight: FontWeight.w600,
+        fontSize: 13,
       ),
-    );
-  }
-
-  Widget _buildTableRows() {
-    return Column(
-      children: _inventoryItems.map(
-        (item) => Padding(
-          padding: EdgeInsets.symmetric(vertical: _rowSpacing),
-          child: Row(
-            children: [
-              SizedBox(width: _productNameLeftSpacing),
-              _buildTableCell(item['name'] ?? '', flex: _productNameFlex),
-              SizedBox(width: _columnSpacing),
-              _buildTableCell(item['id'] ?? '', flex: _idFlex),
-              SizedBox(width: _columnSpacing),
-              _buildTableCell(item['itemSold'] ?? '', flex: _itemSoldFlex),
-              SizedBox(width: _columnSpacing),
-              _buildTableCell(item['inStock'] ?? '', flex: _inStockFlex),
-              SizedBox(width: _columnSpacing),
-              _buildTableCell(item['unitPrice'] ?? '', flex: _unitPriceFlex),
-              SizedBox(width: _columnSpacing),
-              _buildTableCell(item['totalValue'] ?? '', flex: _totalValueFlex),
-              SizedBox(width: _columnSpacing),
-              _buildTableCell(item['status'] ?? '', flex: _statusFlex),
-            ],
-          ),
-        ),
-      ).toList(),
-    );
-  }
-
-  Widget _buildTableCell(String text, {int flex = 1}) {
-    return Expanded(
-      flex: flex,
-      child: Text(
-        text,
-        style: const TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-
-  void _showAddStockDialog(BuildContext context) {
-  final TextEditingController idController = TextEditingController();
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController flavorController = TextEditingController();
-  final TextEditingController quantityController = TextEditingController();
-
-  final List<String> categories = ['Please choose a category', 'Bread', 'Sourdough', 'Biscotti', 'Cookies', 'Cakes', 'Pie'];
-  String? selectedCategory = "Please choose a category";
-
-  final _formKey = GlobalKey<FormState>();
-
-  showDialog(
-    context: context,
-    builder: (context) {
-      return Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: SizedBox(
-          width: 500,
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: StatefulBuilder(
-              builder: (context, setState) {
-                return SingleChildScrollView(
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Stack(
-                          children: [
-                            Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: const [
-                                  Text(
-                                    'Add Stock',
-                                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700),
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Note: fill up all the information needed',
-                                    style: TextStyle(fontSize: 14, color: Colors.grey),
-                                  ),
-                                  SizedBox(height: 24),
-                                ],
-                              ),
-                            ),
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: GestureDetector(
-                                onTap: () => Navigator.of(context).pop(),
-                                child: const Icon(Icons.close, size: 28),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const Text('Product ID', style: TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: idController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(border: OutlineInputBorder()),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) return 'Please enter Product ID';
-                            if (int.tryParse(value) == null) return 'ID must be a number';
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        const Text('Product Name', style: TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: nameController,
-                          decoration: const InputDecoration(border: OutlineInputBorder()),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) return 'Please enter Product Name';
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        const Text('Product Category', style: TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          value: selectedCategory,
-                          items: categories.map((cat) => DropdownMenuItem(
-                            value: cat,
-                            child: Text(cat),
-                          )).toList(),
-                          onChanged: (value) => setState(() => selectedCategory = value),
-                          decoration: const InputDecoration(border: OutlineInputBorder()),
-                          validator: (value) => value == null || value.isEmpty ? 'Please select a category' : null,
-                        ),
-                        const SizedBox(height: 16),
-
-                        const Text('Flavor', style: TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: flavorController,
-                          decoration: const InputDecoration(border: OutlineInputBorder()),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) return 'Please enter Flavor';
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 16),
-
-                        const Text('Quantity', style: TextStyle(fontWeight: FontWeight.w600)),
-                        const SizedBox(height: 8),
-                        TextFormField(
-                          controller: quantityController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(border: OutlineInputBorder()),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) return 'Please enter Quantity';
-                            if (int.tryParse(value) == null) return 'Quantity must be a number';
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 24),
-
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF00B027),
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                            ),
-                            onPressed: () async {
-                             if (_formKey.currentState!.validate()) {
-                              final productId = idController.text;
-                              final productName = nameController.text;
-                              final category = selectedCategory!;
-                              final flavor = flavorController.text;
-                              final quantityToAdd = int.parse(quantityController.text);
-
-                              final snapshot = await dbServices.read(path: 'Product/$productId');
-
-                              if (snapshot == null) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Product not found in database!')),
-                                );
-                                return;
-                              }
-
-                              final data = snapshot.value as Map<dynamic, dynamic>;
-
-                              if (data['product_name'] != productName ||
-                                  data['product_category'] != category ||
-                                  data['flavor'] != flavor) {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Product details do not match database!')),
-                                );
-                                return;
-                              }
-
-                              int currentStock = int.tryParse(data['quantity'].toString()) ?? 0;
-                              int newStock = currentStock + quantityToAdd;
-
-                              double unitPrice = double.tryParse(data['unit_price'].toString().replaceAll('₱', '')) ?? 0;
-                              double totalValue = unitPrice * newStock;
-
-                              await dbServices.update(path: 'Product/$productId', data: {
-                                'quantity': newStock.toString(),
-                                'total_value': '₱${totalValue.toStringAsFixed(2)}',
-                              });
-
-                              setState(() {
-                                int index = _inventoryItems.indexWhere((item) => item['id'] == productId);
-                                if (index != -1) {
-                                  _inventoryItems[index]['inStock'] = newStock.toString();
-                                  _inventoryItems[index]['totalValue'] = '₱${totalValue.toStringAsFixed(2)}';
-                                }
-                              });
-
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Stock updated successfully!')),
-                              );
-
-                            }
-                            },
-                            child: const Text(
-                              'Add',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+      textAlign: TextAlign.center,
+    ),
+  );
+}
+  
+  Widget _buildTableHeader() {
+  return Row(
+    crossAxisAlignment: CrossAxisAlignment.center,
+    children: [
+      Expanded(
+        flex: _productNameFlex,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Product Name',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
             ),
           ),
         ),
-      );
-    },
+      ),
+      Expanded(
+        flex: _itemSoldFlex,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 83.0, right: 8.0),
+          child: Align(
+            alignment: Alignment.center,
+            child: Text(
+              'Item Sold',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ),
+      Expanded(
+        flex: _inStockFlex,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 75.0, right: 8.0),
+          child: Align(
+            alignment: Alignment.center,
+            child: Text(
+              'In Stock',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ),
+      Expanded(
+        flex: _unitPriceFlex,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 66.0, right: 8.0),
+          child: Text(
+            'Unit Price',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ),
+      Expanded(
+        flex: _totalValueFlex,
+        child: Padding(
+          padding: const EdgeInsets.only(left: 86.0, right: 8.0),
+          child: Align(
+            alignment: Alignment.center,
+            child: Text(
+              'Total Value',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ),
+      Expanded(
+        flex: _statusFlex,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Align(
+            alignment: Alignment.center,
+            child: Text(
+              'Status',
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ),
+      Expanded(
+        flex: 1,
+        child: Align(
+          alignment: Alignment.center,
+          child: Text(
+            'Actions',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
+        ),
+      ),
+    ],
   );
 }
+
+
+ 
+
+Widget _buildTableRows() {
+  return Column(
+    children: _inventoryItems.map((item) {
+      bool isEditing = item['isEditing'] == 'true';
+      int currentQty = item['inStock'] ?? 0;
+      double unitPrice = item['unitPrice'] is double
+          ? item['unitPrice']
+          : double.tryParse(item['unitPrice'].toString()) ?? 0.0;
+      double totalValue = currentQty * unitPrice;
+
+      return Padding(
+        padding: EdgeInsets.symmetric(vertical: _rowSpacing / 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              flex: 0,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4.0, right: 6.0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: (item['product_image'] != null && item['product_image'] != '')
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.memory(
+                            base64Decode(item['product_image']),
+                            width: 50,
+                            height: 50,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : const Icon(Icons.image_not_supported, size: 40),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: _productNameFlex,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 4.0, right: 6.0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    item['name'] ?? '',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: _itemSoldFlex,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    '${item['itemSold'] ?? 0}',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: _inStockFlex,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Align(
+                  alignment: Alignment.center,
+                  child: isEditing
+                      ? Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.remove, size: 20),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                setState(() {
+                                  if (currentQty > 0) currentQty--;
+                                  item['inStock'] = currentQty;
+                                  item['totalValue'] = currentQty * unitPrice;
+                                });
+                              },
+                            ),
+                            SizedBox(
+                              width: 28,
+                              child: Center(
+                                child: Text(
+                                  '$currentQty',
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.add, size: 20),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                setState(() {
+                                  currentQty++;
+                                  item['inStock'] = currentQty;
+                                  item['totalValue'] = currentQty * unitPrice;
+                                });
+                              },
+                            ),
+                          ],
+                        )
+                      : Text(
+                          '$currentQty',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                          textAlign: TextAlign.center,
+                        ),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: _unitPriceFlex,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    '₱${unitPrice.toStringAsFixed(2)}',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: _totalValueFlex,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 44.0, right: 4.0),
+                child: Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    '₱${totalValue.toStringAsFixed(2)}',
+                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(
+              flex: _statusFlex,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                child: Align(
+                  alignment: Alignment.center,
+                  child: _buildStockStatus(int.tryParse(item['inStock'].toString()) ?? 0),
+                ),
+              ),
+            ),
+          Expanded(
+            flex: 1,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (!isEditing)
+                  IconButton(
+                    icon: const Icon(Icons.edit_square, size: 24),
+                    onPressed: () {
+                      setState(() => item['isEditing'] = 'true');
+                    },
+                    tooltip: "Edit Quantity",
+                  ),
+                if (isEditing)
+                  IconButton(
+                    icon: const Icon(Icons.check_circle, size: 26, color: Colors.green),
+                    tooltip: "Save Quantity",
+                    onPressed: () async {
+                      setState(() => item['isEditing'] = 'false');
+
+                      int qty = item['inStock'];
+                      double unitPrice = item['unitPrice'] is double
+                          ? item['unitPrice']
+                          : double.tryParse(item['unitPrice'].toString()) ?? 0.0;
+
+                      String newStatus;
+                      if (qty == 0) {
+                        newStatus = 'Out of Stock';
+                      } else if (qty < 10) {
+                        newStatus = 'Low Stock';
+                      } else {
+                        newStatus = 'In Stock';
+                      }
+
+                      await dbServices.update(
+                        path: "Product/${item['id']}",
+                        data: {
+                          'quantity': qty,
+                          'total_value': qty * unitPrice,
+                          'status': newStatus,
+                        },
+                      );
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text("Quantity updated!")),
+                      );
+                    },
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.delete, size: 24, color: Colors.red),
+                  onPressed: () async {
+                    await dbServices.delete(path: "Product/${item['id']}");
+                    setState(() => _inventoryItems.remove(item));
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Product deleted!")),
+                    );
+                  },
+                  tooltip: "Delete Product",
+                ),
+              ],
+            ),
+          ),
+          ],
+        ),
+      );
+    }).toList(),
+  );
+}
+
+
 
 void fetchProducts() {
   setState(() => isLoading = true);
@@ -455,19 +525,22 @@ void fetchProducts() {
     final snapshot = event.snapshot;
 
     if (snapshot.exists) {
-      List<Map<String, String>> products = [];
+      List<Map<String, dynamic>> products = [];
       for (var child in snapshot.children) {
         final data = child.value as Map<dynamic, dynamic>;
+        final int inStock = int.tryParse(data['quantity'].toString()) ?? 0;
+        final double unitPrice = (data['unit_price'] is String) ? double.tryParse(data['unit_price']) ?? 0.0 : (data['unit_price'] as double?) ?? 0.0;
+        
         products.add({
-          'id': data['product_id'].toString(),
-          'name': data['product_name'].toString(),
-          'inStock': data['quantity'].toString(),
-          'unitPrice': '₱${data['unit_price'].toString()}',
-          'status': data['status'].toString(),
-          'product_image': data['product_image']?.toString() ?? '',
-          'itemSold': data['item_sold']?.toString() ?? '0',
-          'totalValue': data['total_value']?.toString() ?? '₱0.00',
-        });
+        'id': data['product_id'].toString(),
+        'name': data['product_name'].toString(),
+        'inStock': data['quantity'] ?? 0,
+        'unitPrice': (data['unit_price'] is String) ? double.tryParse(data['unit_price']) ?? 0.0 : (data['unit_price'] as double?) ?? 0.0,
+        'status': data['status'].toString(),
+        'product_image': data['product_image']?.toString() ?? '',
+        'itemSold': data['item_sold'] ?? 0,
+        'totalValue': inStock * unitPrice,
+      });
       }
 
       setState(() {
@@ -480,17 +553,32 @@ void fetchProducts() {
   });
 }
 
+Future<int> _generateNextProductId() async {
+  final snapshot = await productRef.get();
+
+  int maxId = 0;
+
+  if (snapshot.exists) {
+    for (var child in snapshot.children) {
+      final data = child.value as Map<dynamic, dynamic>;
+      int id = int.tryParse(data['product_id'].toString()) ?? 0;
+      if (id > maxId) maxId = id;
+    }
+  }
+
+  return maxId + 1;
+}
+
+
 
 void _showAddNewProductDialog(BuildContext context) {
-  final TextEditingController idController = TextEditingController();
   final TextEditingController nameController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final TextEditingController flavorController = TextEditingController();
   
   String selectedCategory = 'Please choose a category';
-  final List<String> categories = ['Please choose a category', 'Bread', 'Sourdough', 'Biscotti', 'Cookies', 'Cakes', 'Pie'];
+  final List<String> categories = ['Please choose a category', 'Bread', 'Sourdough', 'Biscotti', 'Cookies', 'Cakes', 'Pie', 'Soft Bread'];
 
-  // ✅ Move these outside so they're in scope for the entire dialog
   String? selectedImagePath;
   Uint8List? selectedImageBytes;
   bool _isHovering = false;
@@ -543,19 +631,6 @@ void _showAddNewProductDialog(BuildContext context) {
                           ),
                         ],
                       ),
-                      const Text('Product ID', style: TextStyle(fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: idController,
-                        keyboardType: TextInputType.number,
-                        decoration: const InputDecoration(border: OutlineInputBorder()),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) return 'Please enter Product ID';
-                          if (int.tryParse(value) == null) return 'ID must be a number';
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
                       const Text('Product Name', style: TextStyle(fontWeight: FontWeight.w600)),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -684,32 +759,34 @@ void _showAddNewProductDialog(BuildContext context) {
                             }
 
                             try {
+                              int newProductId = await _generateNextProductId();
                               String base64Image = base64Encode(selectedImageBytes!);
+                              double unitPrice = double.tryParse(priceController.text) ?? 0.0;
 
-                              final String dbPath = 'Product/${idController.text}';
-                              await dbServices.create(path: dbPath, data: {
-                                'product_id': idController.text,
+
+                              await dbServices.create(path: 'Product/$newProductId', data: {
+                                'product_id': newProductId.toString(),
                                 'product_name': nameController.text,
                                 'product_category': selectedCategory,
                                 'product_image': base64Image,
-                                'unit_price': priceController.text,
+                                'unit_price': unitPrice,
                                 'flavor': flavorController.text,
                                 'status': 'In Stock',
-                                'quantity': '0',
-                                'item_sold': '0',
-                                'total_value': '₱0.00',
+                                'quantity': 0,
+                                'item_sold': 0,
+                                'total_value': 0.0,
                               });
 
                               setState(() {
                                 _inventoryItems.add({
-                                  'id': idController.text,
+                                  'id': newProductId.toString(),
                                   'name': nameController.text,
                                   'inStock': '0',
-                                  'unitPrice': '₱${priceController.text}',
+                                  'unitPrice': double.tryParse(priceController.text) ?? 0.0,
                                   'status': 'In Stock',
                                   'product_image': base64Image,
-                                  'itemSold': '0',
-                                  'totalValue': '₱0.00',
+                                  'itemSold': 0,
+                                  'totalValue': 0.0,
                                 });
                               });
 
@@ -740,10 +817,4 @@ void _showAddNewProductDialog(BuildContext context) {
     },
   );
 }
-
-
-
-
-
-
 }

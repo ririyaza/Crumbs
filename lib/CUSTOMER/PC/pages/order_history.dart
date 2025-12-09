@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class OrderHistoryPage extends StatelessWidget {
-  const OrderHistoryPage({super.key});
+  final String customerId;
+  const OrderHistoryPage({super.key, required this.customerId});
 
   @override
   Widget build(BuildContext context) {

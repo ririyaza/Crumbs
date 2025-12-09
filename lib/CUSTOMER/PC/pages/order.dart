@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'dart:convert';
 import 'dart:typed_data';
+import '../components/helper/cart_manager.dart';
+import '../components/helper/favorite_manager.dart';
+
 
 class OrderPage extends StatefulWidget {
-  const OrderPage({super.key});
+  final String customerId;
+  const OrderPage({super.key, required this.customerId});
 
   @override
   State<OrderPage> createState() => _OrderPageState();
@@ -17,9 +21,6 @@ class _OrderPageState extends State<OrderPage> {
   List<String> productCategories = [];
   List<double> productPrices = [];
   List<Uint8List> productImages = [];
-  List<bool> isFavorite = [];
-
-  List<Map<String, dynamic>> cartItems = [];
 
   DateTime? pickupTime;
   String selectedPayment = 'Cash';
@@ -33,9 +34,7 @@ class _OrderPageState extends State<OrderPage> {
   }
 
   Future<void> fetchProducts() async {
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
     final snapshot = await dbRef.child('Product').get();
     if (snapshot.exists) {
@@ -44,7 +43,6 @@ class _OrderPageState extends State<OrderPage> {
       productNames.clear();
       productPrices.clear();
       productImages.clear();
-      isFavorite.clear();
       productCategories.clear();
 
       if (data is List) {
@@ -57,13 +55,7 @@ class _OrderPageState extends State<OrderPage> {
           productImages.add(prodMap['product_image'] != null
               ? base64Decode(prodMap['product_image'])
               : Uint8List(0));
-          isFavorite.add(false);
-
-          String category = '';
-          if (prodMap['product_category'] != null) {
-            category = prodMap['product_category'].toString();
-          }
-          productCategories.add(category);
+          productCategories.add(prodMap['product_category']?.toString() ?? '');
         }
       } else if (data is Map) {
         data.forEach((key, value) {
@@ -74,26 +66,18 @@ class _OrderPageState extends State<OrderPage> {
           productImages.add(prodMap['product_image'] != null
               ? base64Decode(prodMap['product_image'])
               : Uint8List(0));
-          isFavorite.add(false);
-
-          String category = '';
-          if (prodMap['product_category'] != null) {
-            category = prodMap['product_category'].toString();
-          }
-          productCategories.add(category);
+          productCategories.add(prodMap['product_category']?.toString() ?? '');
         });
       }
     } else {
       print('No data found at Product node.');
     }
 
-    setState(() {
-      isLoading = false;
-    });
+    setState(() => isLoading = false);
   }
 
   double get subTotal =>
-      cartItems.fold(0, (sum, item) => sum + (item['price'] as double));
+      CartManager().cartItems.fold(0, (sum, item) => sum + (item['price'] * item['quantity']));
   double get tax => subTotal * 0.12;
   double get discount => 0.0;
   double get total => subTotal + tax - discount;
@@ -122,9 +106,7 @@ class _OrderPageState extends State<OrderPage> {
                   child: _ScrollableCategories(
                     selectedCategory: selectedCategory,
                     onCategorySelected: (category) {
-                      setState(() {
-                        selectedCategory = category;
-                      });
+                      setState(() => selectedCategory = category);
                     },
                   ),
                 ),
@@ -143,8 +125,7 @@ class _OrderPageState extends State<OrderPage> {
                         : GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate:
-                                const SliverGridDelegateWithFixedCrossAxisCount(
+                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 3,
                               mainAxisSpacing: 20,
                               crossAxisSpacing: 30,
@@ -153,6 +134,9 @@ class _OrderPageState extends State<OrderPage> {
                             itemCount: filteredIndexes.length,
                             itemBuilder: (_, idx) {
                               final i = filteredIndexes[idx];
+                              final productId = productNames[i];
+                              final isFav = FavoriteManager().isFavorite(productId);
+
                               return Stack(
                                 children: [
                                   Container(
@@ -169,23 +153,19 @@ class _OrderPageState extends State<OrderPage> {
                                       ],
                                     ),
                                     child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Container(
                                           height: 150,
                                           width: double.infinity,
                                           decoration: BoxDecoration(
-                                            borderRadius:
-                                                const BorderRadius.vertical(
+                                            borderRadius: const BorderRadius.vertical(
                                               top: Radius.circular(16),
                                             ),
                                             image: DecorationImage(
                                               image: productImages[i].isNotEmpty
                                                   ? MemoryImage(productImages[i])
-                                                  : const AssetImage(
-                                                          'assets/no_image.png')
-                                                      as ImageProvider,
+                                                  : const AssetImage('assets/no_image.png') as ImageProvider,
                                               fit: BoxFit.fill,
                                             ),
                                           ),
@@ -193,8 +173,7 @@ class _OrderPageState extends State<OrderPage> {
                                         Padding(
                                           padding: const EdgeInsets.all(12),
                                           child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
                                                 productNames[i],
@@ -218,21 +197,17 @@ class _OrderPageState extends State<OrderPage> {
                                                 child: ElevatedButton(
                                                   style: ElevatedButton.styleFrom(
                                                     backgroundColor: Colors.green,
-                                                    padding:
-                                                        const EdgeInsets.symmetric(
-                                                            vertical: 12),
+                                                    padding: const EdgeInsets.symmetric(vertical: 12),
                                                     shape: RoundedRectangleBorder(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              12),
+                                                      borderRadius: BorderRadius.circular(12),
                                                     ),
                                                   ),
                                                   onPressed: () {
                                                     setState(() {
-                                                      cartItems.add({
+                                                      CartManager().addToCart({
                                                         'name': productNames[i],
                                                         'price': productPrices[i],
-                                                        'image': MemoryImage(productImages[i]),
+                                                        'image': productImages[i],
                                                         'quantity': 1,
                                                       });
                                                     });
@@ -255,19 +230,23 @@ class _OrderPageState extends State<OrderPage> {
                                   Positioned(
                                     right: 12,
                                     top: 12,
-                                    child: GestureDetector(
-                                      onTap: () {
+                                    child: IconButton(
+                                      icon: Icon(
+                                        isFav ? Icons.favorite : Icons.favorite_border,
+                                        size: 30,
+                                        color: isFav ? Colors.red : Colors.black,
+                                      ),
+                                      onPressed: () {
                                         setState(() {
-                                          isFavorite[i] = !isFavorite[i];
+                                          FavoriteManager().toggleFavorite({
+                                            'id': productId,
+                                            'name': productNames[i],
+                                            'price': productPrices[i],
+                                            'category': productCategories[i],
+                                            'image': productImages[i],
+                                          });
                                         });
                                       },
-                                      child: Icon(
-                                        isFavorite[i]
-                                            ? Icons.favorite
-                                            : Icons.favorite_border,
-                                        size: 30,
-                                        color: isFavorite[i] ? Colors.red : Colors.black,
-                                      ),
                                     ),
                                   ),
                                 ],
@@ -278,7 +257,7 @@ class _OrderPageState extends State<OrderPage> {
             ),
           ),
         ),
-        SizedBox(
+SizedBox(
   width: 400,
   child: Container(
     padding: const EdgeInsets.all(16),
@@ -343,7 +322,7 @@ class _OrderPageState extends State<OrderPage> {
                                   ),
                                   onChanged: (v) => setDialogState(() => month = v!),
                                 ),
-                                const Text("Month")
+                                const Text("Month"),
                               ],
                             ),
                           ),
@@ -361,7 +340,7 @@ class _OrderPageState extends State<OrderPage> {
                                   ),
                                   onChanged: (v) => setDialogState(() => day = v!),
                                 ),
-                                const Text("Day")
+                                const Text("Day"),
                               ],
                             ),
                           ),
@@ -379,12 +358,13 @@ class _OrderPageState extends State<OrderPage> {
                                   ),
                                   onChanged: (v) => setDialogState(() => year = v!),
                                 ),
-                                const Text("Year")
+                                const Text("Year"),
                               ],
                             ),
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
                       Row(
                         children: [
                           Expanded(
@@ -401,7 +381,7 @@ class _OrderPageState extends State<OrderPage> {
                                   ),
                                   onChanged: (v) => setDialogState(() => hour = v!),
                                 ),
-                                const Text("Hour")
+                                const Text("Hour"),
                               ],
                             ),
                           ),
@@ -414,12 +394,12 @@ class _OrderPageState extends State<OrderPage> {
                                     60,
                                     (i) => DropdownMenuItem(
                                       value: i,
-                                      child: Text("${i.toString().padLeft(2, '0')}"),
+                                      child: Text(i.toString().padLeft(2, '0')),
                                     ),
                                   ),
                                   onChanged: (v) => setDialogState(() => minute = v!),
                                 ),
-                                const Text("Min")
+                                const Text("Min"),
                               ],
                             ),
                           ),
@@ -434,7 +414,7 @@ class _OrderPageState extends State<OrderPage> {
                                   ],
                                   onChanged: (v) => setDialogState(() => amPm = v!),
                                 ),
-                                const Text("AM/PM")
+                                const Text("AM/PM"),
                               ],
                             ),
                           ),
@@ -479,9 +459,9 @@ class _OrderPageState extends State<OrderPage> {
         const SizedBox(height: 16),
         Expanded(
           child: ListView.builder(
-            itemCount: cartItems.length,
+            itemCount: CartManager().cartItems.length,
             itemBuilder: (_, i) {
-              final item = cartItems[i];
+              final item = CartManager().cartItems[i];
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
@@ -492,35 +472,23 @@ class _OrderPageState extends State<OrderPage> {
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
                         image: DecorationImage(
-                          image: item['image'] ?? const AssetImage('assets/no_image.png'),
+                          image: item['image'] != null
+                              ? MemoryImage(item['image'])
+                              : const AssetImage('assets/no_image.png') as ImageProvider,
                           fit: BoxFit.cover,
                         ),
                       ),
                     ),
                     const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(item['name']),
-                    ),
+                    Expanded(child: Text(item['name'])),
                     IconButton(
                       icon: const Icon(Icons.remove_circle_outline),
-                      onPressed: () {
-                        setState(() {
-                          if (item['quantity'] > 1) {
-                            item['quantity']--;
-                          } else {
-                            cartItems.removeAt(i);
-                          }
-                        });
-                      },
+                      onPressed: () => setState(() => CartManager().decreaseQuantity(item)),
                     ),
                     Text('${item['quantity']}'),
                     IconButton(
                       icon: const Icon(Icons.add_circle_outline),
-                      onPressed: () {
-                        setState(() {
-                          item['quantity']++;
-                        });
-                      },
+                      onPressed: () => setState(() => CartManager().increaseQuantity(item)),
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -535,30 +503,25 @@ class _OrderPageState extends State<OrderPage> {
         ),
         const SizedBox(height: 8),
         const Divider(),
-        const SizedBox(height: 8),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text("Sub Total"),
-            Text(
-              '₱${cartItems.fold(0.0, (sum, e) => sum + (e['price'] as double) * (e['quantity'] as int)).toStringAsFixed(2)}',
-            ),
+            Text('₱${CartManager().cartItems.fold(0.0, (sum, item) => sum + item['price'] * item['quantity']).toStringAsFixed(2)}'),
           ],
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text("Tax"),
-            Text(
-              '₱${(cartItems.fold(0.0, (sum, e) => sum + (e['price'] as double) * (e['quantity'] as int)) * 0.12).toStringAsFixed(2)}',
-            ),
+            Text('₱${(CartManager().cartItems.fold(0.0, (sum, item) => sum + item['price'] * item['quantity']) * 0.12).toStringAsFixed(2)}'),
           ],
         ),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text("Discount"),
-            Text('₱0.00'),
+            const Text('₱0.00'),
           ],
         ),
         const Divider(),
@@ -570,7 +533,7 @@ class _OrderPageState extends State<OrderPage> {
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             Text(
-              '₱${(cartItems.fold(0.0, (sum, e) => sum + (e['price'] as double) * (e['quantity'] as int)) * 1.12).toStringAsFixed(2)}',
+              '₱${(CartManager().cartItems.fold(0.0, (sum, item) => sum + item['price'] * item['quantity']) * 1.12).toStringAsFixed(2)}',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
@@ -628,6 +591,7 @@ class _OrderPageState extends State<OrderPage> {
     ),
   ),
 ),
+
       ],
     );
   }
