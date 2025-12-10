@@ -52,6 +52,8 @@ class DatabaseService {
     'customer_email': email,
     'customer_contactNumber': contactNumber,
     'customer_password': password,
+    'customer_Fname': 'Customer',
+    'customer_Lname': newId.toString(),
   };
 
   await create(path: path, data: data);

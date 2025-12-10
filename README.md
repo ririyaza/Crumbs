@@ -35,3 +35,6 @@
 
 12/09/2025
 - Added login and sign up validation for customer, add functionalities to the settings
+
+12/10/2025
+-Customer Side: Order summary panel doesn't reset when changes tabs, Synced favorite and order page order summary panel, added conditions in setting pick up time, added condition that if product is out of stock the add to cart button will changed into out of stock. Added placing order function, data is directly saved to the db. Auto generated Customer fname and lname upon signing up.

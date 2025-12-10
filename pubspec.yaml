@@ -38,6 +38,7 @@ dependencies:
   path_provider: ^2.0.17
   emoji_picker_flutter: ^2.0.0
   intl: ^0.18.0
+  provider: ^6.0.5
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -83,6 +84,7 @@ flutter:
       - assets/cat_3.jpg
       - assets/cat_4.jpg
       - assets/cat_5.jpg
+      - assets/cat_6.jpg
       - assets/pop_0.jpg
       - assets/pop_1.jpg
       - assets/pop_2.jpg

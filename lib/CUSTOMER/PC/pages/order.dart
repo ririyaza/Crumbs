@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'dart:convert';
+import 'package:provider/provider.dart';
 import 'dart:typed_data';
+import 'dart:convert';
 import '../components/helper/cart_manager.dart';
 import '../components/helper/favorite_manager.dart';
-
+import '../components/helper/order_summary_panel.dart';
 
 class OrderPage extends StatefulWidget {
   final String customerId;
@@ -21,69 +22,71 @@ class _OrderPageState extends State<OrderPage> {
   List<String> productCategories = [];
   List<double> productPrices = [];
   List<Uint8List> productImages = [];
-
-  DateTime? pickupTime;
-  String selectedPayment = 'Cash';
-  bool isLoading = true;
+  List<int> productStocks = [];
+  List<String> productFlavors = [];
   String? selectedCategory;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    FavoriteManager().setCurrentUser(widget.customerId);
     fetchProducts();
   }
 
   Future<void> fetchProducts() async {
     setState(() => isLoading = true);
 
-    final snapshot = await dbRef.child('Product').get();
-    if (snapshot.exists) {
-      final data = snapshot.value;
-
+    try {
+      final snapshot = await dbRef.child('Product').get();
       productNames.clear();
       productPrices.clear();
       productImages.clear();
       productCategories.clear();
+      productStocks.clear();
+      productFlavors.clear();
 
-      if (data is List) {
-        for (var product in data) {
-          if (product == null) continue;
-          final prodMap = product as Map;
 
-          productNames.add(prodMap['product_name'] ?? 'No Name');
-          productPrices.add(double.tryParse(prodMap['unit_price'].toString()) ?? 0.0);
-          productImages.add(prodMap['product_image'] != null
-              ? base64Decode(prodMap['product_image'])
-              : Uint8List(0));
-          productCategories.add(prodMap['product_category']?.toString() ?? '');
+      if (snapshot.exists) {
+        final data = snapshot.value;
+
+        if (data is Map) {
+          data.forEach((key, value) {
+            final prodMap = Map<String, dynamic>.from(value);
+            productNames.add(prodMap['product_name']?.toString() ?? 'No Name');
+            productPrices.add(double.tryParse(prodMap['unit_price'].toString()) ?? 0.0);
+            productImages.add(prodMap['product_image'] != null
+                ? base64Decode(prodMap['product_image'].toString())
+                : Uint8List(0));
+            productCategories.add(prodMap['product_category']?.toString() ?? '');
+            productStocks.add(int.tryParse(prodMap['quantity']?.toString() ?? '0') ?? 0);
+            productFlavors.add(prodMap['flavor']?.toString() ?? '');
+          });
+        } else if (data is List) {
+          for (var item in data) {
+            if (item == null) continue;
+            final prodMap = Map<String, dynamic>.from(item);
+            productNames.add(prodMap['product_name']?.toString() ?? 'No Name');
+            productPrices.add(double.tryParse(prodMap['unit_price'].toString()) ?? 0.0);
+            productImages.add(prodMap['product_image'] != null
+                ? base64Decode(prodMap['product_image'].toString())
+                : Uint8List(0));
+            productCategories.add(prodMap['product_category']?.toString() ?? '');
+            productStocks.add(int.tryParse(prodMap['quantity']?.toString() ?? '0') ?? 0);
+            productFlavors.add(prodMap['flavor']?.toString() ?? '');
+          }
         }
-      } else if (data is Map) {
-        data.forEach((key, value) {
-          final prodMap = value as Map;
-
-          productNames.add(prodMap['product_name'] ?? 'No Name');
-          productPrices.add(double.tryParse(prodMap['unit_price'].toString()) ?? 0.0);
-          productImages.add(prodMap['product_image'] != null
-              ? base64Decode(prodMap['product_image'])
-              : Uint8List(0));
-          productCategories.add(prodMap['product_category']?.toString() ?? '');
-        });
       }
-    } else {
-      print('No data found at Product node.');
+    } catch (e) {
+      debugPrint('Error fetching products: $e');
     }
 
     setState(() => isLoading = false);
   }
 
-  double get subTotal =>
-      CartManager().cartItems.fold(0, (sum, item) => sum + (item['price'] * item['quantity']));
-  double get tax => subTotal * 0.12;
-  double get discount => 0.0;
-  double get total => subTotal + tax - discount;
-
   @override
   Widget build(BuildContext context) {
+    final cartManager = context.watch<CartManager>();
     final filteredIndexes = <int>[];
     for (int i = 0; i < productNames.length; i++) {
       if (selectedCategory == null || productCategories[i] == selectedCategory) {
@@ -94,6 +97,7 @@ class _OrderPageState extends State<OrderPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Products Grid
         Expanded(
           flex: 3,
           child: SingleChildScrollView(
@@ -112,20 +116,17 @@ class _OrderPageState extends State<OrderPage> {
                 ),
                 const SizedBox(height: 32),
                 isLoading
-                    ? const Center(
-                        child: CircularProgressIndicator(color: Colors.green),
-                      )
+                    ? const Center(child: CircularProgressIndicator(color: Colors.green))
                     : filteredIndexes.isEmpty
                         ? const Center(
-                            child: Text(
-                              "No products in this category",
-                              style: TextStyle(fontSize: 18),
-                            ),
+                            child: Text("No products in this category",
+                                style: TextStyle(fontSize: 18)),
                           )
                         : GridView.builder(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
                               crossAxisCount: 3,
                               mainAxisSpacing: 20,
                               crossAxisSpacing: 30,
@@ -136,6 +137,8 @@ class _OrderPageState extends State<OrderPage> {
                               final i = filteredIndexes[idx];
                               final productId = productNames[i];
                               final isFav = FavoriteManager().isFavorite(productId);
+                              final stock = i < productStocks.length ? productStocks[i] : 0;
+
 
                               return Stack(
                                 children: [
@@ -160,12 +163,13 @@ class _OrderPageState extends State<OrderPage> {
                                           width: double.infinity,
                                           decoration: BoxDecoration(
                                             borderRadius: const BorderRadius.vertical(
-                                              top: Radius.circular(16),
-                                            ),
+                                                top: Radius.circular(16)),
                                             image: DecorationImage(
                                               image: productImages[i].isNotEmpty
                                                   ? MemoryImage(productImages[i])
-                                                  : const AssetImage('assets/no_image.png') as ImageProvider,
+                                                  : const AssetImage(
+                                                          'assets/no_image.png')
+                                                      as ImageProvider,
                                               fit: BoxFit.fill,
                                             ),
                                           ),
@@ -173,54 +177,63 @@ class _OrderPageState extends State<OrderPage> {
                                         Padding(
                                           padding: const EdgeInsets.all(12),
                                           child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Text(
-                                                productNames[i],
-                                                style: const TextStyle(
-                                                  fontSize: 18,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
+                                              Text(productNames[i],
+                                                  style: const TextStyle(
+                                                      fontSize: 18,
+                                                      fontWeight:
+                                                          FontWeight.w600)),
                                               const SizedBox(height: 4),
                                               Text(
-                                                '₱${productPrices[i].toStringAsFixed(2)}',
-                                                style: const TextStyle(
-                                                  fontSize: 16,
-                                                  color: Colors.green,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 16),
-                                              SizedBox(
-                                                width: double.infinity,
-                                                child: ElevatedButton(
-                                                  style: ElevatedButton.styleFrom(
-                                                    backgroundColor: Colors.green,
-                                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                                    shape: RoundedRectangleBorder(
-                                                      borderRadius: BorderRadius.circular(12),
-                                                    ),
-                                                  ),
-                                                  onPressed: () {
-                                                    setState(() {
-                                                      CartManager().addToCart({
-                                                        'name': productNames[i],
-                                                        'price': productPrices[i],
-                                                        'image': productImages[i],
-                                                        'quantity': 1,
-                                                      });
-                                                    });
-                                                  },
-                                                  child: const Text(
-                                                    "Add to Cart",
-                                                    style: TextStyle(
-                                                      color: Colors.white,
+                                                  '₱${productPrices[i].toStringAsFixed(2)}',
+                                                  style: const TextStyle(
                                                       fontSize: 16,
+                                                      color: Colors.green,
+                                                      fontWeight:
+                                                          FontWeight.bold)),
+                                              const SizedBox(height: 16),
+                                              stock > 0
+                                                  ? SizedBox(
+                                                      width: double.infinity,
+                                                      child: ElevatedButton(
+                                                        style: ElevatedButton.styleFrom(
+                                                          backgroundColor: Colors.green,
+                                                          padding: const EdgeInsets.symmetric(vertical: 12),
+                                                          shape: RoundedRectangleBorder(
+                                                            borderRadius: BorderRadius.circular(12),
+                                                          ),
+                                                        ),
+                                                        onPressed: () {
+                                                          cartManager.addToCart({
+                                                            'id': productId,
+                                                            'name': productNames[i],
+                                                            'price': productPrices[i],
+                                                            'image': productImages[i],
+                                                            'quantity': 1,
+                                                            'flavor': productFlavors[i],
+                                                          });
+                                                        },
+                                                        child: const Text("Add to Cart",
+                                                            style: TextStyle(
+                                                                color: Colors.white,
+                                                                fontSize: 16)),
+                                                      ),
+                                                    )
+                                                  : Container(
+                                                      width: double.infinity,
+                                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                                      alignment: Alignment.center,
+                                                      decoration: BoxDecoration(
+                                                        borderRadius: BorderRadius.circular(12),
+                                                        border: Border.all(color: Colors.red, width: 2),
+                                                      ),
+                                                      child: const Text(
+                                                        "Out of Stock",
+                                                        style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
+                                                      ),
                                                     ),
-                                                  ),
-                                                ),
-                                              ),
                                             ],
                                           ),
                                         )
@@ -232,10 +245,11 @@ class _OrderPageState extends State<OrderPage> {
                                     top: 12,
                                     child: IconButton(
                                       icon: Icon(
-                                        isFav ? Icons.favorite : Icons.favorite_border,
-                                        size: 30,
-                                        color: isFav ? Colors.red : Colors.black,
-                                      ),
+                                          isFav
+                                              ? Icons.favorite
+                                              : Icons.favorite_border,
+                                          size: 30,
+                                          color: isFav ? Colors.red : Colors.black),
                                       onPressed: () {
                                         setState(() {
                                           FavoriteManager().toggleFavorite({
@@ -244,6 +258,7 @@ class _OrderPageState extends State<OrderPage> {
                                             'price': productPrices[i],
                                             'category': productCategories[i],
                                             'image': productImages[i],
+                                            'stock': stock,
                                           });
                                         });
                                       },
@@ -257,341 +272,10 @@ class _OrderPageState extends State<OrderPage> {
             ),
           ),
         ),
-SizedBox(
-  width: 400,
-  child: Container(
-    padding: const EdgeInsets.all(16),
-    margin: const EdgeInsets.only(right: 32),
-    decoration: BoxDecoration(
-      color: Colors.grey.shade100,
-      borderRadius: BorderRadius.circular(16),
-      boxShadow: [
-        BoxShadow(
-          blurRadius: 8,
-          spreadRadius: 1,
-          offset: const Offset(0, 3),
-          color: Colors.black.withOpacity(.1),
-        )
-      ],
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Center(
-          child: Text(
-            "Order Summary",
-            style: TextStyle(
-              color: Colors.green,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        GestureDetector(
-          onTap: () async {
-            int month = pickupTime?.month ?? 1;
-            int day = pickupTime?.day ?? 1;
-            int year = pickupTime?.year ?? DateTime.now().year;
-            int hour = pickupTime?.hour ?? 12;
-            int minute = pickupTime?.minute ?? 0;
-            String amPm = hour >= 12 ? 'PM' : 'AM';
-            if (hour > 12) hour -= 12;
-
-            await showDialog(
-              context: context,
-              builder: (_) => StatefulBuilder(
-                builder: (context, setDialogState) => AlertDialog(
-                  title: const Text("Set Date & Time Pickup"),
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              children: [
-                                DropdownButton<int>(
-                                  value: month,
-                                  items: List.generate(
-                                    12,
-                                    (i) => DropdownMenuItem(
-                                      value: i + 1,
-                                      child: Text("${i + 1}"),
-                                    ),
-                                  ),
-                                  onChanged: (v) => setDialogState(() => month = v!),
-                                ),
-                                const Text("Month"),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                DropdownButton<int>(
-                                  value: day,
-                                  items: List.generate(
-                                    31,
-                                    (i) => DropdownMenuItem(
-                                      value: i + 1,
-                                      child: Text("${i + 1}"),
-                                    ),
-                                  ),
-                                  onChanged: (v) => setDialogState(() => day = v!),
-                                ),
-                                const Text("Day"),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                DropdownButton<int>(
-                                  value: year,
-                                  items: List.generate(
-                                    5,
-                                    (i) => DropdownMenuItem(
-                                      value: DateTime.now().year + i,
-                                      child: Text("${DateTime.now().year + i}"),
-                                    ),
-                                  ),
-                                  onChanged: (v) => setDialogState(() => year = v!),
-                                ),
-                                const Text("Year"),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              children: [
-                                DropdownButton<int>(
-                                  value: hour,
-                                  items: List.generate(
-                                    12,
-                                    (i) => DropdownMenuItem(
-                                      value: i + 1,
-                                      child: Text("${i + 1}"),
-                                    ),
-                                  ),
-                                  onChanged: (v) => setDialogState(() => hour = v!),
-                                ),
-                                const Text("Hour"),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                DropdownButton<int>(
-                                  value: minute,
-                                  items: List.generate(
-                                    60,
-                                    (i) => DropdownMenuItem(
-                                      value: i,
-                                      child: Text(i.toString().padLeft(2, '0')),
-                                    ),
-                                  ),
-                                  onChanged: (v) => setDialogState(() => minute = v!),
-                                ),
-                                const Text("Min"),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                DropdownButton<String>(
-                                  value: amPm,
-                                  items: const [
-                                    DropdownMenuItem(value: 'AM', child: Text('AM')),
-                                    DropdownMenuItem(value: 'PM', child: Text('PM')),
-                                  ],
-                                  onChanged: (v) => setDialogState(() => amPm = v!),
-                                ),
-                                const Text("AM/PM"),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  actions: [
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                      onPressed: () {
-                        int h = hour;
-                        if (amPm == 'PM' && h != 12) h += 12;
-                        if (amPm == 'AM' && h == 12) h = 0;
-                        setState(() {
-                          pickupTime = DateTime(year, month, day, h, minute);
-                        });
-                        Navigator.pop(context);
-                      },
-                      child: const Text("Save"),
-                    )
-                  ],
-                ),
-              ),
-            );
-          },
-          child: Row(
-            children: [
-              const Text("Pick up time", style: TextStyle(fontSize: 16)),
-              const Spacer(),
-              Text(
-                pickupTime != null
-                    ? "${pickupTime!.month}/${pickupTime!.day}/${pickupTime!.year} ${pickupTime!.hour}:${pickupTime!.minute.toString().padLeft(2, '0')}"
-                    : "Select Time",
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(width: 4),
-              const Icon(Icons.arrow_drop_down_outlined),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Expanded(
-          child: ListView.builder(
-            itemCount: CartManager().cartItems.length,
-            itemBuilder: (_, i) {
-              final item = CartManager().cartItems[i];
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        image: DecorationImage(
-                          image: item['image'] != null
-                              ? MemoryImage(item['image'])
-                              : const AssetImage('assets/no_image.png') as ImageProvider,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(item['name'])),
-                    IconButton(
-                      icon: const Icon(Icons.remove_circle_outline),
-                      onPressed: () => setState(() => CartManager().decreaseQuantity(item)),
-                    ),
-                    Text('${item['quantity']}'),
-                    IconButton(
-                      icon: const Icon(Icons.add_circle_outline),
-                      onPressed: () => setState(() => CartManager().increaseQuantity(item)),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '₱${(item['price'] * item['quantity']).toStringAsFixed(2)}',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
-        const SizedBox(height: 8),
-        const Divider(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text("Sub Total"),
-            Text('₱${CartManager().cartItems.fold(0.0, (sum, item) => sum + item['price'] * item['quantity']).toStringAsFixed(2)}'),
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text("Tax"),
-            Text('₱${(CartManager().cartItems.fold(0.0, (sum, item) => sum + item['price'] * item['quantity']) * 0.12).toStringAsFixed(2)}'),
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text("Discount"),
-            const Text('₱0.00'),
-          ],
-        ),
-        const Divider(),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              "Total Amount",
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              '₱${(CartManager().cartItems.fold(0.0, (sum, item) => sum + item['price'] * item['quantity']) * 1.12).toStringAsFixed(2)}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            GestureDetector(
-              onTap: () => setState(() => selectedPayment = 'Cash'),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                      color: selectedPayment == 'Cash' ? Colors.green : Colors.grey),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.money, color: Colors.green),
-              ),
-            ),
-            const SizedBox(width: 16),
-            GestureDetector(
-              onTap: () => setState(() => selectedPayment = 'Credit'),
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                      color: selectedPayment == 'Credit' ? Colors.green : Colors.grey),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.credit_card, color: Colors.green),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
         SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: () {
-            },
-            child: const Text(
-              "Place Order",
-              style: TextStyle(fontSize: 16, color: Colors.white),
-            ),
-          ),
+          width: 400,
+          child: OrderSummaryPanel(selectedPayment: 'Cash'),
         ),
-      ],
-    ),
-  ),
-),
-
       ],
     );
   }
@@ -612,7 +296,7 @@ class _ScrollableCategoriesState extends State<_ScrollableCategories> {
   bool _showLeftArrow = false;
   bool _showRightArrow = true;
 
-  final categories = ['Bread', 'Sourdough', 'Biscotti', 'Cookies', 'Cakes', 'Pie'];
+  final categories = ['Bread', 'Sourdough', 'Biscotti', 'Cookies', 'Cakes', 'Pie', 'Soft Bread'];
   final double scrollAmount = 200;
 
   @override

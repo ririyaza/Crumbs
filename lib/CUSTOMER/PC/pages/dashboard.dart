@@ -1,5 +1,4 @@
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import '../../../database_service.dart';
 import '../components/pc_navbar.dart';
@@ -312,7 +311,7 @@ class _ScrollableCategoriesState extends State<_ScrollableCategories> {
   bool _showLeftArrow = false;
   bool _showRightArrow = true;
 
-  final categories = ['Bread', 'Sourdough', 'Biscotti', 'Cookies', 'Cakes', 'Pie'];
+  final categories = ['Bread', 'Sourdough', 'Biscotti', 'Cookies', 'Cakes', 'Pie', 'Soft Bread'];
   final double scrollAmount = 200;
 
   @override
@@ -466,7 +465,7 @@ class _DashboardPageState extends State<DashboardPage> {
   void initState() {
     super.initState();
     selectedIndex = widget.selectedIndex;
-    _loadCustomerProfile(); // Fetch profile from database
+    _loadCustomerProfile(); 
   }
 
   Future<void> _loadCustomerProfile() async {
@@ -493,7 +492,7 @@ class _DashboardPageState extends State<DashboardPage> {
       DashboardContent(
         onOrderNowPressed: () {
           setState(() {
-            selectedIndex = 1; // Navigate to OrderPage
+            selectedIndex = 1; 
           });
         },
       ),
@@ -526,7 +525,6 @@ class _DashboardPageState extends State<DashboardPage> {
           Expanded(
             child: Column(
               children: [
-                // Top bar with search and profile
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
                   child: Row(

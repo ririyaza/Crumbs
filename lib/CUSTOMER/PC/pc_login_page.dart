@@ -1,3 +1,6 @@
+import 'package:provider/provider.dart';
+
+import 'components/helper/cart_manager.dart';
 import 'pages/dashboard.dart';
 import 'pc_registration_page.dart';
 import 'package:flutter/material.dart';
@@ -91,16 +94,22 @@ class _PcLoginPageState extends State<PcLoginPage> {
     }
 
     final customerId = matchedCustomer['customer_id'].toString();
+    final customerfName = matchedCustomer['customer_Fname'].toString();
+    final customerlName = matchedCustomer['customer_Lname'].toString();
+    final customerName = '$customerfName $customerlName';
 
     Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DashboardPage(
+    context,
+    MaterialPageRoute(
+      builder: (context) => ChangeNotifierProvider(
+        create: (_) => CartManager(customerId: customerId, customerName: customerName),
+        child: DashboardPage(
           customerId: customerId,
           selectedIndex: 0,
         ),
       ),
-    );
+    ),
+  );
   } catch (e) {
     setState(() {
       loginError = "Login failed: $e";
