@@ -339,6 +339,7 @@ class OrderSummaryPanel extends StatelessWidget {
                           'order_tax': cartManager.tax,
                           'order_totalAmount': cartManager.total,
                           'order_createdAt': now.toIso8601String(),
+                          'order_updatedAt': now.toIso8601String(),
                           'order_status': 'Pending',
                           'items': cartManager.cartItems.map((item) => {
                             'product_ID': item['id'],
