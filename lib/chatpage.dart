@@ -8,15 +8,11 @@ import 'package:intl/intl.dart';
 class ChatPage extends StatefulWidget {
   final String currentUserId;
   final String chatWithUserId;
-  final String currentUserAvatar;
-  final String chatWithUserAvatar;
 
   const ChatPage({
     super.key,
     required this.currentUserId,
     required this.chatWithUserId,
-    required this.currentUserAvatar,
-    required this.chatWithUserAvatar,
   });
 
   @override
@@ -29,17 +25,79 @@ class _ChatPageState extends State<ChatPage> {
   Uint8List? _pickedImage;
 
   late String chatRoomId;
+  String? currentUserAvatar;
+  String? chatWithUserAvatar;
 
   @override
   void initState() {
     super.initState();
     chatRoomId = _getChatRoomId(widget.currentUserId, widget.chatWithUserId);
+    _loadAvatars();
   }
 
   String _getChatRoomId(String userA, String userB) {
-    return userA.hashCode <= userB.hashCode
-        ? '$userA\_$userB'
-        : '$userB\_$userA';
+    return userA.hashCode <= userB.hashCode ? '$userA\_$userB' : '$userB\_$userA';
+  }
+
+  Future<void> _loadAvatars() async {
+    currentUserAvatar = await _fetchAvatar(widget.currentUserId, isStaff: false);
+    chatWithUserAvatar = await _fetchAvatar(widget.chatWithUserId, isStaff: true);
+    setState(() {});
+  }
+
+  Future<String?> _fetchAvatar(String userId, {bool isStaff = false}) async {
+    final node = isStaff ? 'Staff' : 'Customer';
+    final snapshot = await _db.child(node).get();
+    if (snapshot.value == null) return null;
+
+    final value = snapshot.value;
+
+    if (value is Map) {
+      final entry = value.entries.firstWhere(
+          (e) => e.key.toString() == userId,
+          orElse: () => MapEntry('', {}));
+      if (entry.value is Map && entry.value['profile_image'] != null) {
+        return entry.value['profile_image'].toString();
+      }
+    } else if (value is List) {
+      final index = int.tryParse(userId);
+      if (index != null && index > 0 && index <= value.length) {
+        final entry = value[index - 1];
+        if (entry is Map && entry['profile_image'] != null) {
+          return entry['profile_image'].toString();
+        }
+      }
+    }
+
+    return null;
+  }
+
+  Stream<List<Map<String, dynamic>>> _messagesStream(String chatRoomId) async* {
+    final ref = _db.child('Message/$chatRoomId');
+    await for (final event in ref.onValue) {
+      if (event.snapshot.value == null) {
+        yield [];
+        continue;
+      }
+
+      final value = event.snapshot.value;
+      List<Map<String, dynamic>> messages = [];
+
+      if (value is Map) {
+        messages = value.values
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      } else if (value is List) {
+        messages = value
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+
+      messages.sort((a, b) => (a['timestamp'] ?? 0).compareTo(b['timestamp'] ?? 0));
+      yield messages;
+    }
   }
 
   Future<void> _sendMessage({String? imageBase64}) async {
@@ -47,7 +105,6 @@ class _ChatPageState extends State<ChatPage> {
     if (text.isEmpty && imageBase64 == null) return;
 
     final timestamp = DateTime.now().millisecondsSinceEpoch;
-
     final messageData = {
       'senderId': widget.currentUserId,
       'text': text,
@@ -55,28 +112,21 @@ class _ChatPageState extends State<ChatPage> {
       'timestamp': timestamp,
     };
 
-    await _db.child('chats/$chatRoomId').push().set(messageData);
-
+    await _db.child('Message/$chatRoomId').push().set(messageData);
     _messageController.clear();
     setState(() => _pickedImage = null);
   }
 
   Future<void> _pickImage() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.image,
-      withData: true,
-    );
+    final result = await FilePicker.platform.pickFiles(type: FileType.image, withData: true);
     if (result != null) {
-      setState(() {
-        _pickedImage = result.files.single.bytes;
-      });
+      setState(() => _pickedImage = result.files.single.bytes);
     }
   }
 
   Widget _buildMessage(Map message) {
     final bool isMe = message['senderId'] == widget.currentUserId;
-    final DateTime time =
-        DateTime.fromMillisecondsSinceEpoch(message['timestamp']);
+    final DateTime time = DateTime.fromMillisecondsSinceEpoch(message['timestamp']);
     final String formattedTime = DateFormat('hh:mm a').format(time);
 
     return Align(
@@ -89,26 +139,20 @@ class _ChatPageState extends State<ChatPage> {
           borderRadius: BorderRadius.circular(12),
         ),
         child: Column(
-          crossAxisAlignment:
-              isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
-            if (message['text'] != null && message['text'].isNotEmpty)
-              Text(message['text']),
+            if (message['text'] != null && message['text'].isNotEmpty) Text(message['text']),
             if (message['image'] != null && message['image'].isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Image.memory(
-                  Uint8List.fromList(
-                      List<int>.from(base64Decode(message['image']))),
+                  Uint8List.fromList(List<int>.from(base64Decode(message['image']))),
                   width: 200,
                   height: 200,
                   fit: BoxFit.cover,
                 ),
               ),
-            Text(
-              formattedTime,
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
-            ),
+            Text(formattedTime, style: const TextStyle(fontSize: 10, color: Colors.grey)),
           ],
         ),
       ),
@@ -122,7 +166,9 @@ class _ChatPageState extends State<ChatPage> {
         title: Row(
           children: [
             CircleAvatar(
-              backgroundImage: NetworkImage(widget.chatWithUserAvatar),
+              backgroundImage: chatWithUserAvatar != null
+                  ? MemoryImage(base64Decode(chatWithUserAvatar!))
+                  : null,
             ),
             const SizedBox(width: 10),
             Text('Chat with ${widget.chatWithUserId}'),
@@ -133,28 +179,17 @@ class _ChatPageState extends State<ChatPage> {
       body: Column(
         children: [
           Expanded(
-            child: StreamBuilder(
-              stream: _db.child('chats/$chatRoomId').onValue,
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: _messagesStream(chatRoomId),
               builder: (context, snapshot) {
-                if (!snapshot.hasData ||
-                    snapshot.data == null ||
-                    (snapshot.data! as DatabaseEvent).snapshot.value == null) {
-                  return const Center(child: Text("No messages yet"));
-                }
-
-                final messagesMap =
-                    Map<String, dynamic>.from((snapshot.data! as DatabaseEvent)
-                            .snapshot
-                            .value
-                            as Map);
-                final messages = messagesMap.values.toList();
-                messages.sort((a, b) => a['timestamp'].compareTo(b['timestamp']));
+                final messages = snapshot.data ?? [];
+                if (messages.isEmpty) return const Center(child: Text("No messages yet"));
 
                 return ListView.builder(
                   reverse: false,
                   itemCount: messages.length,
                   itemBuilder: (context, index) =>
-                      _buildMessage(Map<String, dynamic>.from(messages[index])),
+                      _buildMessage(messages[index]),
                 );
               },
             ),
@@ -178,15 +213,8 @@ class _ChatPageState extends State<ChatPage> {
             ),
           Row(
             children: [
-              IconButton(
-                icon: const Icon(Icons.emoji_emotions, color: Colors.grey),
-                onPressed: () {
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.image, color: Colors.grey),
-                onPressed: _pickImage,
-              ),
+              IconButton(icon: const Icon(Icons.emoji_emotions, color: Colors.grey), onPressed: () {}),
+              IconButton(icon: const Icon(Icons.image, color: Colors.grey), onPressed: _pickImage),
               Expanded(
                 child: TextField(
                   controller: _messageController,
@@ -199,9 +227,7 @@ class _ChatPageState extends State<ChatPage> {
               IconButton(
                 icon: const Icon(Icons.send, color: Colors.green),
                 onPressed: () => _sendMessage(
-                  imageBase64: _pickedImage != null
-                      ? base64Encode(_pickedImage!)
-                      : null,
+                  imageBase64: _pickedImage != null ? base64Encode(_pickedImage!) : null,
                 ),
               ),
             ],

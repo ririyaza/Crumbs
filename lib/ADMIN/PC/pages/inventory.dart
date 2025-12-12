@@ -646,7 +646,6 @@ void _showAddNewProductDialog(BuildContext context) {
                         decoration: const InputDecoration(border: OutlineInputBorder()),
                         validator: (value) {
                           if (value == null || value.isEmpty) return 'Please enter Product Name';
-                          // Check for duplicates
                           if (_inventoryItems.any((p) => p['name'].toString().toLowerCase() == value.toLowerCase())) {
                             return 'Product already exists';
                           }
@@ -770,7 +769,6 @@ void _showAddNewProductDialog(BuildContext context) {
                               String base64Image = base64Encode(selectedImageBytes!);
                               double unitPrice = double.tryParse(priceController.text) ?? 0.0;
 
-                              // Use push() to get a unique key
                               DatabaseReference newProductRef = productRef.push();
                               String newProductId = newProductRef.key!;
 

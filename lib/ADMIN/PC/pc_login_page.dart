@@ -46,23 +46,28 @@ class _PcLoginPageState extends State<PcLoginPage> {
 
     setState(() => isLoading = true);
 
-    final db = DatabaseService();
-    final isValid = await db.validateStaffLogin(
-      username: username,
-      password: password,
-    );
+  final db = DatabaseService();
+  final staffInfo = await db.validateStaffLogin(
+    username: username,
+    password: password,
+  );
 
-    setState(() => isLoading = false);
+  setState(() => isLoading = false);
 
-    if (!isValid) {
+    if (staffInfo == null) {
       setState(() => loginError = "Incorrect username or password");
       return;
     }
 
+    final staffId = staffInfo['staff_id'];
+
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
-        pageBuilder: (context, a, b) => const DashboardPage(selectedIndex: 0),
+        pageBuilder: (context, a, b) => DashboardPage(
+          selectedIndex: 0,
+          staffId: staffId,      
+        ),
         transitionDuration: Duration.zero,
         reverseTransitionDuration: Duration.zero,
       ),

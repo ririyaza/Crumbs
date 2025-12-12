@@ -41,7 +41,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
       DateTime parsedDate = DateTime.parse(dateStr);
       return DateFormat('MM/dd/yy hh:mm a').format(parsedDate);
     } catch (e) {
-      return dateStr; // fallback if parsing fails
+      return dateStr; 
     }
   }
 
@@ -141,7 +141,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
             ),
             child: Column(
               children: [
-                // Table Header
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
                   decoration: BoxDecoration(
@@ -160,7 +159,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                   ),
                 ),
                 const Divider(height: 1),
-                // Table Rows
                 ..._orders.map((order) {
                   String status = customerStatusLabel(order['order_status']);
                   String createdAtFormatted = formatDate(order['date']);
@@ -275,7 +273,7 @@ void showOrderDetailsModal(Map<String, dynamic> order) {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: screenWidth * 0.4, // responsive
+            maxWidth: screenWidth * 0.4, 
             maxHeight: screenHeight * 3.0,
           ),
           child: Padding(
@@ -285,7 +283,6 @@ void showOrderDetailsModal(Map<String, dynamic> order) {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Close Button
                   Align(
                     alignment: Alignment.topRight,
                     child: IconButton(
@@ -294,11 +291,9 @@ void showOrderDetailsModal(Map<String, dynamic> order) {
                     ),
                   ),
 
-                  // Order ID
                   Text('#${order['id']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
                   const SizedBox(height: 8),
 
-                  // Pick-up Row
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -308,7 +303,6 @@ void showOrderDetailsModal(Map<String, dynamic> order) {
                   ),
                   const SizedBox(height: 16),
 
-                  // Products Table
                   Row(
                     children: const [
                       Expanded(flex: 5, child: Text('Item', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -344,15 +338,12 @@ void showOrderDetailsModal(Map<String, dynamic> order) {
                   ),
                   const Divider(height: 24),
 
-                  // Order Summary Title
                   const Text('Order Summary', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                   const SizedBox(height: 12),
 
-                  // Two-column summary
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Left Column (Customer info)
                       Expanded(
                         flex: 1,
                         child: Column(
@@ -382,9 +373,8 @@ void showOrderDetailsModal(Map<String, dynamic> order) {
                         ),
                       ),
 
-                      const SizedBox(width: 16), // spacing between left & right
+                      const SizedBox(width: 16), 
 
-                      // Right Column (Financial info)
                       Expanded(
                         flex: 1,
                         child: Column(
@@ -411,7 +401,6 @@ void showOrderDetailsModal(Map<String, dynamic> order) {
                               ],
                             ),
                             const SizedBox(height: 12),
-                            // Total Amount under right column
                             Row(
                               children: [
                                 const Expanded(child: Text('Total Amount', style: TextStyle(fontWeight: FontWeight.bold))),

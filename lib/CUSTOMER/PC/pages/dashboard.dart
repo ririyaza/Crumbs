@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import '../../../database_service.dart';
 import '../components/pc_navbar.dart';
@@ -37,7 +38,6 @@ Future<void> fetchRecentOrders() async {
       final order = Map<String, dynamic>.from(e.value as Map);
       order['order_createdAt'] = order['order_createdAt'] ?? '';
 
-      // Convert items to List<Map<String, dynamic>>
       if (order['items'] != null) {
         if (order['items'] is Map) {
           order['items'] = (order['items'] as Map).values
@@ -54,17 +54,15 @@ Future<void> fetchRecentOrders() async {
       return order;
     }).toList();
 
-    // Filter by customer
     orders = orders
         .where((o) => o['customer_ID'].toString() == widget.customerId)
         .toList();
 
-    // Sort newest first
     orders.sort((a, b) =>
         b['order_createdAt'].toString().compareTo(a['order_createdAt'].toString()));
 
     List<Map<String, dynamic>> products = [];
-    Set<String> addedProducts = {}; // track duplicates by product_name
+    Set<String> addedProducts = {}; 
     int remaining = 6;
 
     for (var order in orders) {
@@ -73,7 +71,7 @@ Future<void> fetchRecentOrders() async {
       for (var item in items) {
         final productName = item['product_name'].toString();
         if (remaining <= 0) break;
-        if (addedProducts.contains(productName)) continue; // skip duplicates
+        if (addedProducts.contains(productName)) continue;
 
         products.add({
           'product_name': productName,
@@ -108,7 +106,6 @@ Future<void> fetchRecentOrders() async {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Banner
                 Container(
                   height: 180,
                   width: 1200,
@@ -545,7 +542,8 @@ class _ScrollableCategoriesState extends State<_ScrollableCategories> {
 class DashboardPage extends StatefulWidget {
   final int selectedIndex;
   final String customerId;
-  const DashboardPage({super.key, this.selectedIndex = 0, required this.customerId});
+  final String customerAvatar;
+  const DashboardPage({super.key, this.selectedIndex = 0, required this.customerId, required this.customerAvatar});
 
   @override
   State<DashboardPage> createState() => _DashboardPageState();
@@ -568,21 +566,65 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   Future<void> _loadCustomerProfile() async {
-    final snapshot = await dbServices.read(path: 'Customer/${widget.customerId}');
-    if (snapshot != null && snapshot.value != null) {
-      final data = snapshot.value as Map<dynamic, dynamic>;
-      setState(() {
-        final firstName = data['customer_Fname'] ?? 'Customer';
-        final lastName = data['customer_Lname'] ?? '';
-        staffName = '$firstName $lastName'.trim();
-        if (data['profile_image'] != null) {
-          staffImage = MemoryImage(base64Decode(data['profile_image']));
-        } else {
-          staffImage = null;
-        }
-      });
+  final snapshot = await dbServices.read(path: 'Customer/${widget.customerId}');
+  if (snapshot != null && snapshot.value != null) {
+    final data = snapshot.value as Map<dynamic, dynamic>;
+    final firstName = data['customer_Fname'] ?? 'Customer';
+    final lastName = data['customer_Lname'] ?? '';
+    staffName = '$firstName $lastName'.trim();
+
+    if (data['profile_image'] != null && data['profile_image'].toString().isNotEmpty) {
+      staffImage = MemoryImage(base64Decode(data['profile_image']));
+    } else {
+      final base64Image = await generateDefaultAvatarBase64(firstName[0].toUpperCase());
+
+      await dbServices.update(
+        path: 'Customer/${widget.customerId}',
+        data: {'profile_image': base64Image},
+      );
+
+      staffImage = MemoryImage(base64Decode(base64Image));
     }
+
+    setState(() {}); 
   }
+}
+
+
+  Future<String> generateDefaultAvatarBase64(String letter, {int size = 128}) async {
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  final paint = Paint()..color = const ui.Color.fromARGB(255, 16, 16, 16);
+
+  canvas.drawCircle(Offset(size / 2, size / 2), size / 2, paint);
+
+  final textPainter = TextPainter(
+    text: TextSpan(
+      text: letter,
+      style: TextStyle(
+        color: Colors.white,
+        fontSize: size / 2,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  );
+  textPainter.layout();
+  textPainter.paint(
+    canvas,
+    Offset(
+      (size - textPainter.width) / 2,
+      (size - textPainter.height) / 2,
+    ),
+  );
+
+  final picture = recorder.endRecording();
+  final img = await picture.toImage(size, size);
+  final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+  final pngBytes = byteData!.buffer.asUint8List();
+
+  return base64Encode(pngBytes);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -598,7 +640,7 @@ class _DashboardPageState extends State<DashboardPage> {
       OrderPage(customerId: widget.customerId),
       FavoritePage(customerId: widget.customerId),
       OrderHistoryPage(customerId: widget.customerId),
-      MessagePage(customerId: widget.customerId),
+      MessagePage(customerId: widget.customerId,customerAvatar: widget.customerAvatar,),
       SettingsPage(
         customerId: widget.customerId,
         onProfileUpdate: (name, imageBytes) {

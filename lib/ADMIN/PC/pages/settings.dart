@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -318,31 +319,32 @@ class _SettingsPageState extends State<SettingsPage> {
               height: 46,
               child: OutlinedButton(
                 onPressed: () async {
-                  setState(() {
-                    _firstNameController.clear();
-                    _lastNameController.clear();
-                    _contactController.clear();
-                    _passwordController.clear();
+                setState(() {
+                  _firstNameController.text = 'Staff';
+                  _lastNameController.clear();
+                  _contactController.clear();
+                  _passwordController.clear();
+                  _selectedImage = null;
+                  _imageBytes = null;
+                });
 
-                    _selectedImage = null;
-                    _imageBytes = null;
-                  });
+                final defaultImageBase64 = await generateDefaultAvatar('S');
 
-                  Map<String, dynamic> defaultData = {
-                    'staff_Fname': 'Staff',
-                    'staff_Lname': '',
-                    'profile_image': null,
-                    'contact_number': '',
-                  };
+                Map<String, dynamic> defaultData = {
+                  'staff_Fname': 'Staff',
+                  'staff_Lname': '',
+                  'profile_image': defaultImageBase64,
+                  'contact_number': '',
+                };
 
-                  await dbServices.update(path: 'Staff/1', data: defaultData);
+                await dbServices.update(path: 'Staff/1', data: defaultData);
 
-                  widget.onProfileUpdate('Staff', null);
+                widget.onProfileUpdate('Staff', base64Decode(defaultImageBase64));
 
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Profile reset to default!")),
-                  );
-                },
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Profile reset to default!")),
+                );
+              },
                 style: OutlinedButton.styleFrom(
                   backgroundColor: Colors.white,
                   side: const BorderSide(color: Colors.black),
@@ -386,6 +388,39 @@ class _SettingsPageState extends State<SettingsPage> {
       }
     });
   }
+}
+
+Future<String> generateDefaultAvatar(String letter) async {
+  const int size = 180; 
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  final paint = Paint()..color = Colors.black87;
+
+  canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, paint);
+
+  final textPainter = TextPainter(
+    text: TextSpan(
+      text: letter,
+      style: const TextStyle(
+        color: Colors.white,
+        fontSize: 90,
+        fontWeight: FontWeight.bold,
+      ),
+    ),
+    textDirection: TextDirection.ltr,
+  );
+  textPainter.layout();
+  textPainter.paint(
+    canvas,
+    Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
+  );
+
+  final picture = recorder.endRecording();
+  final img = await picture.toImage(size, size);
+  final byteData = await img.toByteData(format: ui.ImageByteFormat.png);
+  final bytes = byteData!.buffer.asUint8List();
+
+  return base64Encode(bytes);
 }
 
 }

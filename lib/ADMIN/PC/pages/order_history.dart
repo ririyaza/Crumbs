@@ -25,7 +25,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
     fetchOrders();
   }
 
-  // Fetch orders from Firebase
   Future<void> fetchOrders() async {
     final snapshot = await dbRef.get();
     if (snapshot.exists) {
@@ -34,10 +33,8 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
       List<Map<String, dynamic>> fetchedOrders = data.entries.map((e) {
         final order = Map<String, dynamic>.from(e.value as Map);
 
-        // Store Firebase node key for updates
         order['firebaseKey'] = e.key;
 
-        // Convert items
         if (order['items'] != null) {
           if (order['items'] is Map) {
             order['items'] = (order['items'] as Map).values
@@ -52,7 +49,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
           order['items'] = [];
         }
 
-        // Add computed orderDetails for UI
         order['orderDetails'] = order['items']
             .map<Map<String, dynamic>>((i) => {
                   'name':
@@ -65,7 +61,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
         return order;
       }).toList();
 
-      // Separate orders by status
       setState(() {
         newOrders =
             fetchedOrders.where((o) => o['order_status'] == 'Pending').toList();
@@ -81,38 +76,100 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
     }
   }
 
-  // Update order status using firebaseKey
-  Future<void> updateOrderStatus(
-      Map<String, dynamic> order, String newStatus) async {
-    final now = DateTime.now();
+Future<void> updateOrderStatus(Map<String, dynamic> order, String newStatus) async {
+  final now = DateTime.now();
+  final firebaseKey = order['firebaseKey'];
 
-    await dbRef.child(order['firebaseKey']).update({
-      'order_status': newStatus,
-      'order_updatedAt': now.toIso8601String(),
-    });
-
-    // Update UI
-    setState(() {
-      newOrders.removeWhere((o) => o['firebaseKey'] == order['firebaseKey']);
-      inProgressOrders
-          .removeWhere((o) => o['firebaseKey'] == order['firebaseKey']);
-      completedOrders
-          .removeWhere((o) => o['firebaseKey'] == order['firebaseKey']);
-
-      final updatedOrder = {
-        ...order,
-        'order_status': newStatus,
-        'order_updatedAt': now.toIso8601String()
-      };
-
-      if (newStatus == 'Pending') newOrders.add(updatedOrder);
-      if (newStatus == 'In Progress') inProgressOrders.add(updatedOrder);
-      if (newStatus == 'Completed') completedOrders.add(updatedOrder);
-      // Cancelled orders are removed from UI
-
-      selectedOrderId = null;
-    });
+  if (firebaseKey == null) {
+    print("ERROR: firebaseKey missing for order!");
+    return;
   }
+
+  await dbRef.child(firebaseKey).update({
+    'order_status': newStatus,
+    'order_updatedAt': now.toIso8601String(),
+  });
+
+  if (newStatus == 'Completed') {
+    final productRef = FirebaseDatabase.instance.ref().child('Product');
+
+    final productSnapshot = await productRef.get();
+    if (!productSnapshot.exists) {
+      print("No products found in Firebase.");
+      return;
+    }
+
+    final productValue = productSnapshot.value;
+    Map<String, dynamic> products = {};
+
+    if (productValue is Map) {
+      products = Map<String, dynamic>.from(productValue);
+    } else if (productValue is List) {
+      for (int i = 0; i < productValue.length; i++) {
+        if (productValue[i] != null) {
+          products[i.toString()] = Map<String, dynamic>.from(productValue[i]);
+        }
+      }
+    } else {
+      print("Unexpected Product node type: ${productValue.runtimeType}");
+      return;
+    }
+
+    for (var item in order['items'] ?? []) {
+      final itemName = item['product_name']?.toString().trim().toLowerCase() ?? '';
+      final itemFlavor = (item['product_flavor'] ?? '').toString().trim().toLowerCase();
+
+      String? matchingProductKey;
+
+      for (var entry in products.entries) {
+        final data = Map<String, dynamic>.from(entry.value);
+        final name = data['product_name']?.toString().trim().toLowerCase() ?? '';
+        final flavor = (data['flavor'] ?? '').toString().trim().toLowerCase();
+
+        if (name == itemName && flavor == itemFlavor) {
+          matchingProductKey = entry.key;
+          break;
+        }
+      }
+
+      if (matchingProductKey != null) {
+        final productData = Map<String, dynamic>.from(products[matchingProductKey]!);
+
+        final newQty = (productData['quantity'] ?? 0) - (item['product_quantity'] ?? 0);
+        final newSold = (productData['item_sold'] ?? 0) + (item['product_quantity'] ?? 0);
+
+        await productRef.child(matchingProductKey).update({
+          'quantity': newQty < 0 ? 0 : newQty,
+          'item_sold': newSold,
+        });
+
+
+      } else {
+        print("Warning: No matching product found for ${item['product_name']} ${item['product_flavor'] ?? ''}");
+      }
+    }
+  }
+
+  setState(() {
+    newOrders.removeWhere((o) => o['order_ID'] == order['order_ID']);
+    inProgressOrders.removeWhere((o) => o['order_ID'] == order['order_ID']);
+    completedOrders.removeWhere((o) => o['order_ID'] == order['order_ID']);
+
+    final updated = {...order, 'order_status': newStatus};
+
+    if (newStatus == 'Pending') newOrders.add(updated);
+    if (newStatus == 'In Progress') inProgressOrders.add(updated);
+    if (newStatus == 'Completed') completedOrders.add(updated);
+
+    selectedOrderId = null;
+  });
+}
+
+
+
+
+
+
 
 Future<void> acceptOrder(Map<String, dynamic> order) =>
     updateOrderStatus(order, 'In Progress');
@@ -135,7 +192,6 @@ Future<void> completeOrder(Map<String, dynamic> order) =>
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Left panel: orders list
         Expanded(
           flex: 2,
           child: SingleChildScrollView(
@@ -165,7 +221,6 @@ Future<void> completeOrder(Map<String, dynamic> order) =>
           ),
         ),
         const VerticalDivider(width: 1),
-        // Right panel: order details
         Expanded(
           flex: 3,
           child: selectedOrder != null
@@ -195,8 +250,7 @@ Future<void> completeOrder(Map<String, dynamic> order) =>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Show actual order_ID from DB
-                    Text(order['order_ID'] ?? '-',
+                    Text('#${order['order_ID']}',
                         style: const TextStyle(
                             fontWeight: FontWeight.bold, fontSize: 13)),
                     Text(
@@ -245,7 +299,6 @@ Future<void> completeOrder(Map<String, dynamic> order) =>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Back Button + Order ID
           Row(
             children: [
               IconButton(
@@ -257,7 +310,7 @@ Future<void> completeOrder(Map<String, dynamic> order) =>
                 },
               ),
               const SizedBox(width: 8),
-              Text(order['order_ID'] ?? '-',
+              Text('#${order['order_ID']}',
                   style:
                       const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             ],

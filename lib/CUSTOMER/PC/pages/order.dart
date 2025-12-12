@@ -34,9 +34,6 @@ class _OrderPageState extends State<OrderPage> {
     super.initState();
     FavoriteManager().setCurrentUser(widget.customerId);
     fetchProducts();
-      if (widget.initialCategory != null) {
-    selectedCategory = widget.initialCategory!;
-  }
   }
 
   Future<void> fetchProducts() async {
@@ -102,7 +99,6 @@ class _OrderPageState extends State<OrderPage> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Products Grid
         Expanded(
           flex: 3,
           child: SingleChildScrollView(
@@ -357,9 +353,8 @@ class _ScrollableCategoriesState extends State<_ScrollableCategories> {
             return GestureDetector(
               onTap: () {
             if (widget.onCategorySelected != null) {
-              // Toggle: if tapped category is already selected, unselect it
               if (widget.selectedCategory == categories[i]) {
-                widget.onCategorySelected!(null); // unselect
+                widget.onCategorySelected!(null); 
               } else {
                 widget.onCategorySelected!(categories[i]);
               }
