@@ -1,4 +1,6 @@
-class FavoriteManager {
+import 'package:flutter/material.dart';
+
+class FavoriteManager extends ChangeNotifier {
   static final FavoriteManager _instance = FavoriteManager._internal();
   factory FavoriteManager() => _instance;
 

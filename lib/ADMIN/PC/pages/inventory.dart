@@ -575,14 +575,22 @@ void _showAddNewProductDialog(BuildContext context) {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController priceController = TextEditingController();
   final TextEditingController flavorController = TextEditingController();
-  
+
   String selectedCategory = 'Please choose a category';
-  final List<String> categories = ['Please choose a category', 'Bread', 'Sourdough', 'Biscotti', 'Cookies', 'Cakes', 'Pie', 'Soft Bread'];
+  final List<String> categories = [
+    'Please choose a category',
+    'Bread',
+    'Sourdough',
+    'Biscotti',
+    'Cookies',
+    'Cakes',
+    'Pie',
+    'Soft Bread'
+  ];
 
-  String? selectedImagePath;
   Uint8List? selectedImageBytes;
+  String? selectedImagePath;
   bool _isHovering = false;
-
   final _formKey = GlobalKey<FormState>();
 
   showDialog(
@@ -638,6 +646,10 @@ void _showAddNewProductDialog(BuildContext context) {
                         decoration: const InputDecoration(border: OutlineInputBorder()),
                         validator: (value) {
                           if (value == null || value.isEmpty) return 'Please enter Product Name';
+                          // Check for duplicates
+                          if (_inventoryItems.any((p) => p['name'].toString().toLowerCase() == value.toLowerCase())) {
+                            return 'Product already exists';
+                          }
                           return null;
                         },
                       ),
@@ -698,10 +710,7 @@ void _showAddNewProductDialog(BuildContext context) {
                               Positioned(
                                 child: ElevatedButton(
                                   onPressed: () async {
-                                    FilePickerResult? result = await FilePicker.platform.pickFiles(
-                                      type: FileType.image,
-                                    );
-
+                                    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
                                     if (result != null && result.files.isNotEmpty) {
                                       setState(() {
                                         selectedImagePath = result.files.single.name;
@@ -750,7 +759,6 @@ void _showAddNewProductDialog(BuildContext context) {
                           ),
                           onPressed: () async {
                             if (!_formKey.currentState!.validate()) return;
-
                             if (selectedImageBytes == null) {
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(content: Text('Please select a product image')),
@@ -759,13 +767,15 @@ void _showAddNewProductDialog(BuildContext context) {
                             }
 
                             try {
-                              int newProductId = await _generateNextProductId();
                               String base64Image = base64Encode(selectedImageBytes!);
                               double unitPrice = double.tryParse(priceController.text) ?? 0.0;
 
+                              // Use push() to get a unique key
+                              DatabaseReference newProductRef = productRef.push();
+                              String newProductId = newProductRef.key!;
 
-                              await dbServices.create(path: 'Product/$newProductId', data: {
-                                'product_id': newProductId.toString(),
+                              await newProductRef.set({
+                                'product_id': newProductId,
                                 'product_name': nameController.text,
                                 'product_category': selectedCategory,
                                 'product_image': base64Image,
@@ -775,19 +785,6 @@ void _showAddNewProductDialog(BuildContext context) {
                                 'quantity': 0,
                                 'item_sold': 0,
                                 'total_value': 0.0,
-                              });
-
-                              setState(() {
-                                _inventoryItems.add({
-                                  'id': newProductId.toString(),
-                                  'name': nameController.text,
-                                  'inStock': '0',
-                                  'unitPrice': double.tryParse(priceController.text) ?? 0.0,
-                                  'status': 'In Stock',
-                                  'product_image': base64Image,
-                                  'itemSold': 0,
-                                  'totalValue': 0.0,
-                                });
                               });
 
                               Navigator.of(context).pop();

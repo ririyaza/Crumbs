@@ -22,8 +22,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
 
   String customerStatusLabel(String status) {
     switch (status.toLowerCase()) {
-      case "submitted":
       case "pending":
+        return "Submitted";
+      case "in progress":
         return "Submitted";
       case "completed":
         return "Picked up";
@@ -233,7 +234,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 TextButton(
-                                  onPressed: () {},
+                                  onPressed: () {
+                                    showOrderDetailsModal(order);
+                                  },
                                   child: const Text('View', style: TextStyle(color: Colors.green)),
                                 ),
                                 const SizedBox(width: 8),
@@ -260,4 +263,176 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
       ),
     );
   }
+
+void showOrderDetailsModal(Map<String, dynamic> order) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final screenHeight = MediaQuery.of(context).size.height;
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: screenWidth * 0.4, // responsive
+            maxHeight: screenHeight * 3.0,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Close Button
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+
+                  // Order ID
+                  Text('#${order['id']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                  const SizedBox(height: 8),
+
+                  // Pick-up Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Pick Up:', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Text(formatDate(order['order_scheduledPickupTime']), style: const TextStyle(color: Colors.green)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Products Table
+                  Row(
+                    children: const [
+                      Expanded(flex: 5, child: Text('Item', style: TextStyle(fontWeight: FontWeight.bold))),
+                      Expanded(flex: 2, child: Text('Quantity', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.center)),
+                      Expanded(flex: 3, child: Text('Price', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+                    ],
+                  ),
+                  const Divider(),
+
+                  Column(
+                    children: List.generate(order['products'].length, (index) {
+                      final product = order['products'][index];
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 5,
+                              child: Text('${product['product_name']}${product['product_flavor'].isNotEmpty ? " - ${product['product_flavor']}" : ""}'),
+                            ),
+                            Expanded(
+                              flex: 2,
+                              child: Text('${product['product_quantity']}', textAlign: TextAlign.center),
+                            ),
+                            Expanded(
+                              flex: 3,
+                              child: Text('₱${product['product_price'].toStringAsFixed(2)}', textAlign: TextAlign.right),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ),
+                  const Divider(height: 24),
+
+                  // Order Summary Title
+                  const Text('Order Summary', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  const SizedBox(height: 12),
+
+                  // Two-column summary
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Left Column (Customer info)
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Expanded(child: Text('Customer Name:')),
+                                Expanded(child: Text('${order['customer_name']}')),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                const Expanded(child: Text('Payment Method:')),
+                                Expanded(child: Text('${order['payment_method']}')),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                const Expanded(child: Text('Order Time:')),
+                                Expanded(child: Text(formatDate(order['date']))),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      const SizedBox(width: 16), // spacing between left & right
+
+                      // Right Column (Financial info)
+                      Expanded(
+                        flex: 1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Row(
+                              children: [
+                                const Expanded(child: Text('Subtotal:')),
+                                Expanded(child: Text('₱${order['order_subTotal'].toStringAsFixed(2)}', textAlign: TextAlign.right)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                const Expanded(child: Text('Tax:')),
+                                Expanded(child: Text('₱${order['order_tax'].toStringAsFixed(2)}', textAlign: TextAlign.right)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: const [
+                                Expanded(child: Text('Discount:')),
+                                Expanded(child: Text('₱0.00', textAlign: TextAlign.right)),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            // Total Amount under right column
+                            Row(
+                              children: [
+                                const Expanded(child: Text('Total Amount', style: TextStyle(fontWeight: FontWeight.bold))),
+                                Expanded(child: Text('₱${order['order_totalAmount'].toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+
+
 }

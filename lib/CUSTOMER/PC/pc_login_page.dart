@@ -105,7 +105,6 @@ class _PcLoginPageState extends State<PcLoginPage> {
         create: (_) => CartManager(customerId: customerId, customerName: customerName),
         child: DashboardPage(
           customerId: customerId,
-          selectedIndex: 0,
         ),
       ),
     ),

@@ -9,7 +9,9 @@ import '../components/helper/order_summary_panel.dart';
 
 class OrderPage extends StatefulWidget {
   final String customerId;
-  const OrderPage({super.key, required this.customerId});
+  final String? initialCategory;
+  
+  const OrderPage({super.key, required this.customerId, this.initialCategory});
 
   @override
   State<OrderPage> createState() => _OrderPageState();
@@ -32,6 +34,9 @@ class _OrderPageState extends State<OrderPage> {
     super.initState();
     FavoriteManager().setCurrentUser(widget.customerId);
     fetchProducts();
+      if (widget.initialCategory != null) {
+    selectedCategory = widget.initialCategory!;
+  }
   }
 
   Future<void> fetchProducts() async {
@@ -351,10 +356,15 @@ class _ScrollableCategoriesState extends State<_ScrollableCategories> {
             final isSelected = widget.selectedCategory == categories[i];
             return GestureDetector(
               onTap: () {
-                if (widget.onCategorySelected != null) {
-                  widget.onCategorySelected!(categories[i]);
-                }
-              },
+            if (widget.onCategorySelected != null) {
+              // Toggle: if tapped category is already selected, unselect it
+              if (widget.selectedCategory == categories[i]) {
+                widget.onCategorySelected!(null); // unselect
+              } else {
+                widget.onCategorySelected!(categories[i]);
+              }
+            }
+          },
               child: Container(
                 width: 190,
                 margin: const EdgeInsets.only(right: 16),

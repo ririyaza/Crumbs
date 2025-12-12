@@ -13,6 +13,11 @@ class PcSideNavbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Adjust width based on screen size
+    double sidebarWidth = screenWidth > 800 ? 250 : screenWidth * 0.7;
+
     final List<String> menuItems = [
       'Dashboard',
       'Order',
@@ -32,7 +37,7 @@ class PcSideNavbar extends StatelessWidget {
     ];
 
     return Container(
-      width: 250,
+      width: sidebarWidth,
       color: Colors.white,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -60,28 +65,32 @@ class PcSideNavbar extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    Text(
-                      'CRUMBS',
-                      style: TextStyle(
-                        fontFamily: 'Century',
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: const [
+                      Text(
+                        'CRUMBS',
+                        style: TextStyle(
+                          fontFamily: 'Century',
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    Text(
-                      'BY M & C',
-                      style: TextStyle(
-                        fontFamily: 'Century',
-                        color: Colors.black,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                      Text(
+                        'BY M & C',
+                        style: TextStyle(
+                          fontFamily: 'Century',
+                          color: Colors.black,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -100,7 +109,7 @@ class PcSideNavbar extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 180,
+                          width: sidebarWidth * 0.72, // scale with sidebar width
                           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                           decoration: isSelected
                               ? BoxDecoration(
@@ -115,11 +124,14 @@ class PcSideNavbar extends StatelessWidget {
                                 color: isSelected ? Colors.white : Colors.black,
                               ),
                               const SizedBox(width: 16),
-                              Text(
-                                menuItems[index],
-                                style: TextStyle(
-                                  color: isSelected ? Colors.white : Colors.black,
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                              Flexible(
+                                child: Text(
+                                  menuItems[index],
+                                  style: TextStyle(
+                                    color: isSelected ? Colors.white : Colors.black,
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -132,7 +144,6 @@ class PcSideNavbar extends StatelessWidget {
               },
             ),
           ),
-
           const SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.only(bottom: 20),

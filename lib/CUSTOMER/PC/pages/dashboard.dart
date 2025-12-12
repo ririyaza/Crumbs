@@ -8,9 +8,93 @@ import 'order_history.dart';
 import 'message.dart';
 import 'settings.dart';
 
-class DashboardContent extends StatelessWidget {
+class DashboardContent extends StatefulWidget {
   final VoidCallback? onOrderNowPressed;
-  const DashboardContent({super.key, this.onOrderNowPressed});
+  final String customerId;
+
+  const DashboardContent({super.key, this.onOrderNowPressed, required this.customerId});
+
+  @override
+  State<DashboardContent> createState() => _DashboardContentState();
+}
+
+class _DashboardContentState extends State<DashboardContent> {
+  final DatabaseService dbServices = DatabaseService();
+  List<Map<String, dynamic>> recentProducts = [];
+
+  @override
+  void initState() {
+    super.initState();
+    fetchRecentOrders();
+  }
+
+Future<void> fetchRecentOrders() async {
+  final snapshot = await dbServices.read(path: 'Order');
+  if (snapshot != null && snapshot.value != null) {
+    final data = snapshot.value as Map<dynamic, dynamic>;
+
+    List<Map<String, dynamic>> orders = data.entries.map((e) {
+      final order = Map<String, dynamic>.from(e.value as Map);
+      order['order_createdAt'] = order['order_createdAt'] ?? '';
+
+      // Convert items to List<Map<String, dynamic>>
+      if (order['items'] != null) {
+        if (order['items'] is Map) {
+          order['items'] = (order['items'] as Map).values
+              .map((i) => Map<String, dynamic>.from(i as Map))
+              .toList();
+        } else if (order['items'] is List) {
+          order['items'] = List<Map<String, dynamic>>.from(
+              (order['items'] as List).map((i) => Map<String, dynamic>.from(i as Map)));
+        }
+      } else {
+        order['items'] = [];
+      }
+
+      return order;
+    }).toList();
+
+    // Filter by customer
+    orders = orders
+        .where((o) => o['customer_ID'].toString() == widget.customerId)
+        .toList();
+
+    // Sort newest first
+    orders.sort((a, b) =>
+        b['order_createdAt'].toString().compareTo(a['order_createdAt'].toString()));
+
+    List<Map<String, dynamic>> products = [];
+    Set<String> addedProducts = {}; // track duplicates by product_name
+    int remaining = 6;
+
+    for (var order in orders) {
+      final items = List<Map<String, dynamic>>.from(order['items']);
+
+      for (var item in items) {
+        final productName = item['product_name'].toString();
+        if (remaining <= 0) break;
+        if (addedProducts.contains(productName)) continue; // skip duplicates
+
+        products.add({
+          'product_name': productName,
+          'product_price': item['product_price'].toString(),
+          'product_image': item['product_image'].toString(),
+        });
+        addedProducts.add(productName);
+        remaining--;
+      }
+      if (remaining <= 0) break;
+    }
+
+    setState(() {
+      recentProducts = products;
+    });
+  } else {
+    print('No orders found in Firebase.');
+  }
+}
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +108,7 @@ class DashboardContent extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Banner
                 Container(
                   height: 180,
                   width: 1200,
@@ -50,9 +135,7 @@ class DashboardContent extends StatelessWidget {
                           ),
                         ),
                       ),
-
                       const SizedBox(height: 10),
-
                       Row(
                         children: [
                           const Expanded(
@@ -67,7 +150,6 @@ class DashboardContent extends StatelessWidget {
                               ),
                             ),
                           ),
-
                           Padding(
                             padding: const EdgeInsets.only(right: 30),
                             child: ElevatedButton(
@@ -81,7 +163,7 @@ class DashboardContent extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(14),
                                 ),
                               ),
-                              onPressed: onOrderNowPressed,
+                              onPressed: widget.onOrderNowPressed,
                               child: const Text(
                                 "Order Now",
                                 style: TextStyle(fontSize: 18, color: Colors.white),
@@ -100,10 +182,9 @@ class DashboardContent extends StatelessWidget {
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-
                 SizedBox(
                   height: 110,
-                  child: _ScrollableCategories(), 
+                  child: _ScrollableCategories(),
                 ),
                 const SizedBox(height: 32),
 
@@ -112,7 +193,6 @@ class DashboardContent extends StatelessWidget {
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -144,9 +224,7 @@ class DashboardContent extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           ClipRRect(
-                            borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(16),
-                            ),
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
                             child: Image.asset(
                               "assets/pop_$i.jpg",
                               height: 150,
@@ -161,19 +239,12 @@ class DashboardContent extends StatelessWidget {
                               children: [
                                 Text(
                                   productNames[i],
-                                  style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   productPrices[i],
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.green,
-                                    fontWeight: FontWeight.bold,
-                                  ),
+                                  style: const TextStyle(fontSize: 16, color: Colors.green, fontWeight: FontWeight.bold),
                                 ),
                               ],
                             ),
@@ -184,33 +255,84 @@ class DashboardContent extends StatelessWidget {
                   },
                 ),
 
-
                 const SizedBox(height: 32),
-
                 const Text(
                   "Recent Orders",
                   style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
 
-                // SizedBox(
-                //   height: 130,
-                //   child: ListView.builder(
-                //     scrollDirection: Axis.horizontal,
-                //     itemCount: 6,
-                //     itemBuilder: (_, i) => Container(
-                //       width: 180,
-                //       margin: const EdgeInsets.only(right: 16),
-                //       decoration: BoxDecoration(
-                //         borderRadius: BorderRadius.circular(16),
-                //         image: DecorationImage(
-                //           image: AssetImage("assets/recent_$i.jpg"),
-                //           fit: BoxFit.cover,
-                //         ),
-                //       ),
-                //     ),
-                //   ),
-                // ),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    mainAxisSpacing: 20,
+                    crossAxisSpacing: 20,
+                    mainAxisExtent: 260,
+                  ),
+                  itemCount: recentProducts.length,
+                  itemBuilder: (_, i) {
+                    final product = recentProducts[i];
+                    ImageProvider imageProvider;
+
+                    if (product['product_image'] != null && product['product_image'].isNotEmpty) {
+                      try {
+                        imageProvider = MemoryImage(base64Decode(product['product_image']));
+                      } catch (e) {
+                        imageProvider = const AssetImage("assets/placeholder.png");
+                      }
+                    } else {
+                      imageProvider = const AssetImage("assets/placeholder.png");
+                    }
+
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                            offset: const Offset(0, 3),
+                            color: Colors.black.withOpacity(.1),
+                          )
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          ClipRRect(
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                            child: Image(
+                              image: imageProvider,
+                              height: 150,
+                              width: double.infinity,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  product['product_name'],
+                                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  product['product_price'],
+                                  style: const TextStyle(fontSize: 16, color: Colors.green, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -225,7 +347,7 @@ class DashboardContent extends StatelessWidget {
                 border: Border.all(color: Colors.grey.shade300, width: 1.5),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start, 
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
                     height: 240,
@@ -240,15 +362,12 @@ class DashboardContent extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 32),
-
                   const Text(
                     "Location",
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color:  Color.fromARGB(255, 22, 107, 26)),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 22, 107, 26)),
                   ),
                   const SizedBox(height: 8),
-
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: const [
@@ -260,15 +379,12 @@ class DashboardContent extends StatelessWidget {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 32),
-
                   const Text(
                     "Hours",
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 22, 107, 26)),
                   ),
                   const SizedBox(height: 10),
-
                   Center(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
@@ -288,7 +404,6 @@ class DashboardContent extends StatelessWidget {
                         Text("Sunday        9:00 AM – 12:00 PM"),
                         SizedBox(height: 40),
                       ],
-                      
                     ),
                   ),
                 ],
@@ -366,9 +481,7 @@ class _ScrollableCategoriesState extends State<_ScrollableCategories> {
             return Container(
               width: 190,
               margin: const EdgeInsets.only(right: 16),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-              ),
+              decoration: BoxDecoration(borderRadius: BorderRadius.circular(16)),
               child: Stack(
                 children: [
                   ClipRRect(
@@ -389,13 +502,7 @@ class _ScrollableCategoriesState extends State<_ScrollableCategories> {
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
                         fontSize: 16,
-                        shadows: [
-                          Shadow(
-                            blurRadius: 3,
-                            color: Colors.black54,
-                            offset: Offset(1, 1),
-                          ),
-                        ],
+                        shadows: [Shadow(blurRadius: 3, color: Colors.black54, offset: Offset(1, 1))],
                       ),
                     ),
                   ),
@@ -404,7 +511,6 @@ class _ScrollableCategoriesState extends State<_ScrollableCategories> {
             );
           },
         ),
-
         if (_showLeftArrow)
           Positioned(
             left: 0,
@@ -414,13 +520,10 @@ class _ScrollableCategoriesState extends State<_ScrollableCategories> {
               onTap: scrollLeft,
               child: const SizedBox(
                 width: 40,
-                child: Center(
-                  child: Icon(Icons.arrow_back_ios, size: 24, color: Colors.black),
-                ),
+                child: Center(child: Icon(Icons.arrow_back_ios, size: 24, color: Colors.black)),
               ),
             ),
           ),
-
         if (_showRightArrow)
           Positioned(
             right: 0,
@@ -430,9 +533,7 @@ class _ScrollableCategoriesState extends State<_ScrollableCategories> {
               onTap: scrollRight,
               child: const SizedBox(
                 width: 40,
-                child: Center(
-                  child: Icon(Icons.arrow_forward_ios, size: 24, color: Colors.black),
-                ),
+                child: Center(child: Icon(Icons.arrow_forward_ios, size: 24, color: Colors.black)),
               ),
             ),
           ),
@@ -440,7 +541,6 @@ class _ScrollableCategoriesState extends State<_ScrollableCategories> {
     );
   }
 }
-
 
 class DashboardPage extends StatefulWidget {
   final int selectedIndex;
@@ -458,14 +558,13 @@ class _DashboardPageState extends State<DashboardPage> {
   final TextEditingController _searchController = TextEditingController();
   final double _profileSize = 66;
   final double _searchWidth = 720;
-
   final DatabaseService dbServices = DatabaseService();
 
   @override
   void initState() {
     super.initState();
     selectedIndex = widget.selectedIndex;
-    _loadCustomerProfile(); 
+    _loadCustomerProfile();
   }
 
   Future<void> _loadCustomerProfile() async {
@@ -476,7 +575,6 @@ class _DashboardPageState extends State<DashboardPage> {
         final firstName = data['customer_Fname'] ?? 'Customer';
         final lastName = data['customer_Lname'] ?? '';
         staffName = '$firstName $lastName'.trim();
-
         if (data['profile_image'] != null) {
           staffImage = MemoryImage(base64Decode(data['profile_image']));
         } else {
@@ -492,9 +590,10 @@ class _DashboardPageState extends State<DashboardPage> {
       DashboardContent(
         onOrderNowPressed: () {
           setState(() {
-            selectedIndex = 1; 
+            selectedIndex = 1;
           });
         },
+        customerId: widget.customerId,
       ),
       OrderPage(customerId: widget.customerId),
       FavoritePage(customerId: widget.customerId),
@@ -575,10 +674,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         children: [
                           Text(
                             staffName,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 22,
-                            ),
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 22),
                           ),
                           const SizedBox(width: 8),
                           const Icon(Icons.arrow_drop_down, color: Colors.black87, size: 60),
@@ -590,11 +686,7 @@ class _DashboardPageState extends State<DashboardPage> {
                             child: staffImage == null
                                 ? const Text(
                                     'C',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                    ),
+                                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                                   )
                                 : null,
                           ),

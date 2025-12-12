@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -347,6 +349,7 @@ class OrderSummaryPanel extends StatelessWidget {
                             'product_quantity': item['quantity'],
                             'product_price': item['price'],
                             'product_flavor': item['flavor'] ?? '',
+                            'product_image': base64Encode(item['image']),
                           }).toList(),
                         };
 

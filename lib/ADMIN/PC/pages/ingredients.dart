@@ -663,29 +663,44 @@ Widget _buildStockStatus(int currentStock) {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         ),
-                        onPressed: () async {
-                          if (_formKey.currentState!.validate()) {
-                            int newId = 1;
-                            if (_ingredientsItems.isNotEmpty) {
-                              newId = _ingredientsItems
-                                  .map((item) => int.tryParse(item['id']) ?? 0)
-                                  .reduce((curr, next) => curr > next ? curr : next) + 1;
-                            }
+                      onPressed: () async {
+                        if (_formKey.currentState!.validate()) {
+                          String newName = nameController.text.trim();
 
-                            final newRef = productRef.child(newId.toString());
-                            await newRef.set({
-                              "ingredient_id": newId.toString(),
-                              "ingredient_name": nameController.text.trim(),
-                              "quantity": '0',
-                              "reserved": '0',
-                              "available": '0',
-                              "threshold": '0',
-                              "status": getStatus(0),
-                            });
+                          bool exists = _ingredientsItems.any((item) =>
+                              item['name'].toString().toLowerCase() == newName.toLowerCase());
 
-                            Navigator.of(context).pop();
+                          if (exists) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Ingredient "$newName" already exists.'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                            return;
                           }
-                        },
+
+                          int newId = 1;
+                          if (_ingredientsItems.isNotEmpty) {
+                            newId = _ingredientsItems
+                                .map((item) => int.tryParse(item['id']) ?? 0)
+                                .reduce((curr, next) => curr > next ? curr : next) + 1;
+                          }
+
+                          final newRef = productRef.child(newId.toString());
+                          await newRef.set({
+                            "ingredient_id": newId.toString(),
+                            "ingredient_name": newName,
+                            "quantity": '0',
+                            "reserved": '0',
+                            "available": '0',
+                            "threshold": '0',
+                            "status": getStatus(0),
+                          });
+
+                          Navigator.of(context).pop();
+                        }
+                      },
                         child: const Text(
                           'Add',
                           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
