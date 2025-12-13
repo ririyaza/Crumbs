@@ -346,19 +346,22 @@ Future<void> fetchRecentOrders() async {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    height: 240,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        "Google Map",
-                        style: TextStyle(fontSize: 20, color: Colors.black54),
-                      ),
+                 Container(
+                  height: 240,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.asset(
+                      "assets/google.jpg", 
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: double.infinity,
                     ),
                   ),
+                ),
                   const SizedBox(height: 32),
                   const Text(
                     "Location",

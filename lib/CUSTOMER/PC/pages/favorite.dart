@@ -55,7 +55,7 @@ class _FavoritePageState extends State<FavoritePage> {
                       final Uint8List image = product['image'] ?? Uint8List(0);
                       final name = product['name'] ?? 'No Name';
                       final price = product['price'] ?? 0.0;
-                      final stock = product['stock'] ?? 0; // check stock
+                      final stock = product['stock'] ?? 0; 
 
                       return Stack(
                         children: [

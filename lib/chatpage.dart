@@ -27,6 +27,7 @@ class _ChatPageState extends State<ChatPage> {
   late String chatRoomId;
   String? currentUserAvatar;
   String? chatWithUserAvatar;
+  String? chatWithUserName;
 
   @override
   void initState() {
@@ -42,35 +43,54 @@ class _ChatPageState extends State<ChatPage> {
   Future<void> _loadAvatars() async {
     currentUserAvatar = await _fetchAvatar(widget.currentUserId, isStaff: false);
     chatWithUserAvatar = await _fetchAvatar(widget.chatWithUserId, isStaff: true);
+    chatWithUserName = await _fetchFullName(widget.chatWithUserId, isStaff: true);
     setState(() {});
   }
 
   Future<String?> _fetchAvatar(String userId, {bool isStaff = false}) async {
-    final node = isStaff ? 'Staff' : 'Customer';
-    final snapshot = await _db.child(node).get();
-    if (snapshot.value == null) return null;
+  final node = isStaff ? 'Staff' : 'Customer';
+  final snapshot = await _db.child(node).get();
+  if (!snapshot.exists) return null;
 
-    final value = snapshot.value;
+  final value = snapshot.value;
 
-    if (value is Map) {
-      final entry = value.entries.firstWhere(
-          (e) => e.key.toString() == userId,
-          orElse: () => MapEntry('', {}));
-      if (entry.value is Map && entry.value['profile_image'] != null) {
-        return entry.value['profile_image'].toString();
-      }
-    } else if (value is List) {
-      final index = int.tryParse(userId);
-      if (index != null && index > 0 && index <= value.length) {
-        final entry = value[index - 1];
-        if (entry is Map && entry['profile_image'] != null) {
-          return entry['profile_image'].toString();
+  if (value is List) {
+    for (var entry in value) {
+      if (entry is Map) {
+        final idField = isStaff ? entry['staff_id'] : entry['customer_id'];
+        if (idField.toString() == userId) {
+          return entry['profile_image']?.toString();
         }
       }
     }
-
-    return null;
   }
+
+  return null;
+}
+
+Future<String?> _fetchFullName(String userId, {bool isStaff = false}) async {
+  final node = isStaff ? 'Staff' : 'Customer';
+  final snapshot = await _db.child(node).get();
+  if (!snapshot.exists) return null;
+
+  final value = snapshot.value;
+
+  if (value is List) {
+    for (var entry in value) {
+      if (entry is Map) {
+        final idField = isStaff ? entry['staff_id'] : entry['customer_id'];
+        if (idField.toString() == userId) {
+          final firstName = isStaff ? entry['staff_Fname'] : entry['customer_Fname'];
+          final lastName = isStaff ? entry['staff_Lname'] : entry['customer_Lname'];
+          return '$firstName $lastName'.trim();
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
 
   Stream<List<Map<String, dynamic>>> _messagesStream(String chatRoomId) async* {
     final ref = _db.child('Message/$chatRoomId');
@@ -124,58 +144,87 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Widget _buildMessage(Map message) {
-    final bool isMe = message['senderId'] == widget.currentUserId;
-    final DateTime time = DateTime.fromMillisecondsSinceEpoch(message['timestamp']);
-    final String formattedTime = DateFormat('hh:mm a').format(time);
+ Widget _buildMessage(Map message) {
+  final bool isMe = message['senderId'] == widget.currentUserId;
+  final DateTime time = DateTime.fromMillisecondsSinceEpoch(message['timestamp']);
+  final String formattedTime = DateFormat('hh:mm a').format(time);
 
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isMe ? Colors.green[100] : Colors.grey[200],
-          borderRadius: BorderRadius.circular(12),
+  return Align(
+    alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+    child: Container(
+      margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+      padding: const EdgeInsets.all(16), // bigger padding
+      decoration: BoxDecoration(
+        color: isMe ? Colors.green[300] : Colors.grey[300],
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(18),
+          topRight: const Radius.circular(18),
+          bottomLeft: isMe ? const Radius.circular(18) : const Radius.circular(0),
+          bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(18),
         ),
-        child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-          children: [
-            if (message['text'] != null && message['text'].isNotEmpty) Text(message['text']),
-            if (message['image'] != null && message['image'].isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 6),
+      ),
+      child: Column(
+        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        children: [
+          // TEXT
+          if (message['text'] != null && message['text'].isNotEmpty)
+            Text(
+              message['text'],
+              style: const TextStyle(
+                fontSize: 18, // bigger text
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+
+          // IMAGE
+          if (message['image'] != null && message['image'].isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
                 child: Image.memory(
                   Uint8List.fromList(List<int>.from(base64Decode(message['image']))),
-                  width: 200,
-                  height: 200,
+                  width: 250,
+                  height: 250,
                   fit: BoxFit.cover,
                 ),
               ),
-            Text(formattedTime, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-          ],
-        ),
+            ),
+
+          const SizedBox(height: 6),
+
+          // TIME
+          Text(
+            formattedTime,
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey.shade700,
+            ),
+          ),
+        ],
       ),
-    );
-  }
+    ),
+  );
+}
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundImage: chatWithUserAvatar != null
-                  ? MemoryImage(base64Decode(chatWithUserAvatar!))
-                  : null,
-            ),
-            const SizedBox(width: 10),
-            Text('Chat with ${widget.chatWithUserId}'),
-          ],
-        ),
-        backgroundColor: Colors.green[700],
+      title: Row(
+        children: [
+          CircleAvatar(
+            backgroundImage: chatWithUserAvatar != null
+                ? MemoryImage(base64Decode(chatWithUserAvatar!))
+                : null,
+          ),
+          const SizedBox(width: 10),
+          Text(chatWithUserName ?? 'Chat'),
+        ],
       ),
+      backgroundColor: const Color.fromARGB(255, 223, 217, 217),
+    ),
       body: Column(
         children: [
           Expanded(
@@ -225,7 +274,7 @@ class _ChatPageState extends State<ChatPage> {
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.send, color: Colors.green),
+                icon: const Icon(Icons.send, color: Colors.black),
                 onPressed: () => _sendMessage(
                   imageBase64: _pickedImage != null ? base64Encode(_pickedImage!) : null,
                 ),

@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 class CartManager extends ChangeNotifier {
   final String customerId;
-  final String customerName; // Added customer name
+  final String customerName; 
 
   CartManager({required this.customerId, required this.customerName});
 
@@ -11,16 +11,12 @@ class CartManager extends ChangeNotifier {
   final Map<String, DateTime?> _customerPickupTimes = {};
   final Map<String, String> _customerPayments = {};
 
-  // Get the current customer's cart items
   List<Map<String, dynamic>> get cartItems => _customerCarts[customerId] ?? [];
 
-  // Pickup time for the current customer
   DateTime? get pickupTime => _customerPickupTimes[customerId];
 
-  // Selected payment method for the current customer
   String get selectedPayment => _customerPayments[customerId] ?? 'Cash';
 
-  // Add item to cart
   void addToCart(Map<String, dynamic> item) {
     _customerCarts.putIfAbsent(customerId, () => []);
     final cart = _customerCarts[customerId]!;
@@ -33,7 +29,6 @@ class CartManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Remove item from cart
   void removeFromCart(Map<String, dynamic> item) {
     final cart = _customerCarts[customerId];
     if (cart == null) return;
@@ -41,7 +36,6 @@ class CartManager extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Increase quantity of an item
   void increaseQuantity(Map<String, dynamic> item) {
     final cart = _customerCarts[customerId];
     if (cart == null) return;
@@ -52,7 +46,6 @@ class CartManager extends ChangeNotifier {
     }
   }
 
-  // Decrease quantity of an item
   void decreaseQuantity(Map<String, dynamic> item) {
     final cart = _customerCarts[customerId];
     if (cart == null) return;
@@ -67,7 +60,6 @@ class CartManager extends ChangeNotifier {
     }
   }
 
-  // Cart calculations
   double get subTotal =>
       cartItems.fold(0.0, (sum, item) => sum + (item['price'] as double) * (item['quantity'] as int));
 
@@ -75,19 +67,16 @@ class CartManager extends ChangeNotifier {
   double get discount => 0.0;
   double get total => subTotal + tax - discount;
 
-  // Clear cart
   void clearCart() {
     _customerCarts[customerId]?.clear();
     notifyListeners();
   }
 
-  // Set pickup time
   void setPickupTime(DateTime time) {
     _customerPickupTimes[customerId] = time;
     notifyListeners();
   }
 
-  // Set payment method
   void setPayment(String payment) {
     _customerPayments[customerId] = payment;
     notifyListeners();

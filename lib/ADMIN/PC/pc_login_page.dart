@@ -59,7 +59,7 @@ class _PcLoginPageState extends State<PcLoginPage> {
       return;
     }
 
-    final staffId = staffInfo['staff_id'];
+    final staffId = staffInfo['staff_id'].toString();
 
     Navigator.pushReplacement(
       context,

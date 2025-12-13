@@ -158,27 +158,27 @@ class DatabaseService {
     return true;
   }
 
-  Future<bool> validateStaffLogin({
+  Future<Map<String, dynamic>?> validateStaffLogin({
   required String username,
   required String password,
 }) async {
   final ref = FirebaseDatabase.instance.ref("Staff");
   final snapshot = await ref.get();
 
-  if (!snapshot.exists) return false;
+  if (!snapshot.exists) return null;
 
   for (var child in snapshot.children) {
     final data = child.value as Map<dynamic, dynamic>;
-
     final dbUsername = data['staff_username']?.toString() ?? '';
     final dbPassword = data['staff_password']?.toString() ?? '';
 
     if (dbUsername == username && dbPassword == password) {
-      return true; 
+      // Return a Map<String, dynamic> instead of true
+      return Map<String, dynamic>.from(data);
     }
   }
 
-  return false;
+  return null;
 }
 
 Future<bool> validateCustomerLogin({

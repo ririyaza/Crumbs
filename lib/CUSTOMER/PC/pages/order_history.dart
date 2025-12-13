@@ -45,6 +45,209 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
     }
   }
 
+ Future<Map<String, dynamic>> reorder(Map<String, dynamic> oldOrder) async {
+  final dbRef = FirebaseDatabase.instance.ref().child('Order');
+
+  final snapshot = await dbRef.get();
+  int lastKey = 0;
+
+  if (snapshot.exists && snapshot.value is Map) {
+    final orders = Map<String, dynamic>.from(snapshot.value as Map);
+    for (var key in orders.keys) {
+      final parsed = int.tryParse(key) ?? 0;
+      if (parsed > lastKey) lastKey = parsed;
+    }
+  }
+
+  final newKey = (lastKey + 1).toString().padLeft(2, '0');
+  final newOrderRef = dbRef.child(newKey);
+
+  final randomOrderId = (100000000 +
+          (DateTime.now().millisecondsSinceEpoch % 900000000))
+      .toString();
+  final now = DateTime.now();
+
+  Map<String, dynamic> newOrder = {
+    'order_ID': randomOrderId,
+    'customer_ID': oldOrder['customer_ID'],
+    'customer_name': oldOrder['customer_name'],
+    'order_createdAt': now.toIso8601String(),
+    'order_paymentMethod': oldOrder['payment_method'],
+    'order_subtotal': oldOrder['order_subTotal'],
+    'order_tax': oldOrder['order_tax'],
+    'order_totalAmount': oldOrder['order_totalAmount'],
+    'order_schedulePickup': oldOrder['order_scheduledPickupTime'],
+    'order_status': 'Pending',
+    'order_updatedAt': now.toIso8601String(),
+    'items': oldOrder['products'].map((product) {
+      return {
+        'product_ID': product['product_ID'],
+        'product_name': product['product_name'],
+        'product_flavor': product['product_flavor'],
+        'product_price': product['product_price'],
+        'product_quantity': product['product_quantity'],
+        'product_image': product['product_image'],
+      };
+    }).toList(),
+  };
+
+  await newOrderRef.set(newOrder);
+
+  // Return the new order after processing it like _processOrderItem
+  return _processOrderItem({
+    'order_ID': newOrder['order_ID'],
+    'customer_ID': newOrder['customer_ID'],
+    'customer_name': newOrder['customer_name'],
+    'order_createdAt': newOrder['order_createdAt'],
+    'order_paymentMethod': newOrder['order_paymentMethod'],
+    'order_subtotal': newOrder['order_subtotal'],
+    'order_tax': newOrder['order_tax'],
+    'order_totalAmount': newOrder['order_totalAmount'],
+    'order_schedulePickup': newOrder['order_schedulePickup'],
+    'order_status': newOrder['order_status'],
+    'order_updatedAt': newOrder['order_updatedAt'],
+    'items': newOrder['items'],
+  });
+}
+
+
+
+
+  void showReorderSuccessModal(Map<String, dynamic> order) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final screenHeight = MediaQuery.of(context).size.height;
+
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: screenWidth * 0.3, // make modal narrower
+            maxHeight: screenHeight * 0.9, // make modal shorter
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12), // slightly smaller padding
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Green Circle with Check Icon
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: const BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.check, color: Colors.white, size: 40),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Reorder Successful',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+
+                // Product table header
+                Row(
+                  children: const [
+                    Expanded(flex: 1, child: Text('QTY', style: TextStyle(fontWeight: FontWeight.bold))),
+                    Expanded(flex: 4, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold))),
+                    Expanded(flex: 2, child: Text('Unit Price', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+                    Expanded(flex: 2, child: Text('Amount', style: TextStyle(fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+                  ],
+                ),
+                const Divider(),
+
+                // Product list inside scrollable box
+                SizedBox(
+                  height: 330, // adjust table height
+                  child: SingleChildScrollView(
+                    child: Column(
+                      children: List.generate(order['products'].length, (index) {
+                        final product = order['products'][index];
+                        double unitPrice = product['product_price'] ?? 0.0;
+                        int qty = product['product_quantity'] ?? 0;
+                        double amount = unitPrice * qty;
+
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Row(
+                            children: [
+                              Expanded(flex: 1, child: Text(qty.toString())),
+                              Expanded(flex: 4, child: Text('${product['product_name']}${product['product_flavor'].isNotEmpty ? " - ${product['product_flavor']}" : ""}')),
+                              Expanded(flex: 2, child: Text('₱${unitPrice.toStringAsFixed(2)}', textAlign: TextAlign.right)),
+                              Expanded(flex: 2, child: Text('₱${amount.toStringAsFixed(2)}', textAlign: TextAlign.right)),
+                            ],
+                          ),
+                        );
+                      }),
+                    ),
+                  ),
+                ),
+                const Divider(height: 20),
+
+                // Order Summary
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Order Summary', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Expanded(flex: 2, child: Text('Order ID:')),
+                          Expanded(flex: 3, child: Text(order['id'])),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const Expanded(flex: 2, child: Text('Payment Method:')),
+                          Expanded(flex: 3, child: Text(order['payment_method'])),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const Expanded(flex: 2, child: Text('Order Time:')),
+                          Expanded(flex: 3, child: Text(formatDate(order['date']))),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          const Expanded(flex: 2, child: Text('Pickup Time:')),
+                          Expanded(flex: 3, child: Text(formatDate(order['order_scheduledPickupTime']))),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Close button
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                  child: const Text('Close', style: TextStyle(color: Colors.white)),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    },
+  );
+}
+
+
+
   void fetchOrders() async {
     final dbRef = FirebaseDatabase.instance.ref().child('Order');
     final snapshot = await dbRef.get();
@@ -238,14 +441,64 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                   child: const Text('View', style: TextStyle(color: Colors.green)),
                                 ),
                                 const SizedBox(width: 8),
-                                ElevatedButton(
-                                  onPressed: () {},
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                             ElevatedButton(
+                              onPressed: () {
+                               showDialog(
+                              context: context,
+                              builder: (BuildContext context) {
+                                return AlertDialog(
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
-                                  child: const Text('Order again', style: TextStyle(color: Colors.white)),
+                                  title: const Center(
+                                    child: Text(
+                                      'Confirm Order?',
+                                      style: TextStyle(fontWeight: FontWeight.bold),
+                                    ),
+                                  ),
+                                  content: const Text('Are you sure you want to order this again?'),
+                                  actionsAlignment: MainAxisAlignment.spaceBetween, // space buttons evenly
+                                  actions: [
+                                    OutlinedButton(
+                                      onPressed: () {
+                                        Navigator.of(context).pop(); // Close the modal
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(color: Colors.black), // black border
+                                      ),
+                                      child: const Text('Cancel', style: TextStyle(color: Colors.black)),
+                                    ),
+                                  ElevatedButton(
+                                  onPressed: () async {
+                                  Navigator.of(context).pop(); // Close Confirm dialog
+
+                                  // Create new order and get it back
+                                  Map<String, dynamic> newOrder = await reorder(order);
+
+                                  // Add new order to the list and refresh UI
+                                  setState(() {
+                                    _orders.insert(0, newOrder); // insert at the top
+                                  });
+
+                                  // Show success modal
+                                  showReorderSuccessModal(newOrder);
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
                                 ),
+                                child: const Text('Confirm'),
+                                ),
+                                  ],
+                                );
+                              },
+                            );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              child: const Text('Order again', style: TextStyle(color: Colors.white)),
+                            ),
                               ],
                             ),
                           ),

@@ -43,4 +43,4 @@
 -Order history page data is reflected from db. Selecting an already selected category, unselect that category to show all products.
 
 12/12/2025
--Customer side dashboard recent orders is now reflected from db. Admin side order history is now fully functional. Prevent duplication when adding new ingredient and product. Product stock and item sold increased every time an order is marked as completed. Top Sales, Unit Sold, and Top Selling Products data are reflected from db.
+-Customer side dashboard recent orders is now reflected from db. Admin side order history is now fully functional. Prevent duplication when adding new ingredient and product. Product stock and item sold increased every time an order is marked as completed. Top Sales, Unit Sold, and Top Selling Products data are reflected from db. Implemented chats between admin and customer.

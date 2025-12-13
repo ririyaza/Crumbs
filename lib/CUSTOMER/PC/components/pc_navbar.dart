@@ -15,7 +15,6 @@ class PcSideNavbar extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
-    // Adjust width based on screen size
     double sidebarWidth = screenWidth > 800 ? 250 : screenWidth * 0.7;
 
     final List<String> menuItems = [
@@ -109,7 +108,7 @@ class PcSideNavbar extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: sidebarWidth * 0.72, // scale with sidebar width
+                          width: sidebarWidth * 0.72, 
                           padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
                           decoration: isSelected
                               ? BoxDecoration(

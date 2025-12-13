@@ -232,54 +232,65 @@ Future<void> completeOrder(Map<String, dynamic> order) =>
   }
 
   Widget _buildOrderCard(Map<String, dynamic> order, Color borderColor) {
-    return GestureDetector(
-      onTap: () => setState(() => selectedOrderId = order['order_ID']),
-      child: SizedBox(
-        width: 300,
-        child: Card(
-          shape: RoundedRectangleBorder(
-            side: BorderSide(color: borderColor, width: 2),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          margin: const EdgeInsets.symmetric(vertical: 6),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('#${order['order_ID']}',
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 13)),
-                    Text(
-                        '₱${(order['order_totalAmount'] ?? 0).toStringAsFixed(2)}',
-                        style: const TextStyle(
-                            color: Color.fromARGB(255, 21, 153, 25),
-                            fontSize: 20)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('${(order['items'] as List).length} items',
-                        style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black,
-                            fontWeight: FontWeight.w900)),
-                    Text(order['order_createdAt'] ?? '',
-                        style: const TextStyle(fontSize: 14, color: Colors.black87)),
-                  ],
-                ),
-              ],
-            ),
+  final DateFormat cardFormat = DateFormat('MM/dd/yy hh:mm a');
+  String orderDateStr = '-';
+  if (order['order_createdAt'] != null) {
+    try {
+      final date = DateTime.parse(order['order_createdAt']);
+      orderDateStr = cardFormat.format(date);
+    } catch (e) {
+      print("Error parsing date: $e");
+    }
+  }
+
+  return GestureDetector(
+    onTap: () => setState(() => selectedOrderId = order['order_ID']),
+    child: SizedBox(
+      width: 300,
+      child: Card(
+        shape: RoundedRectangleBorder(
+          side: BorderSide(color: borderColor, width: 2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        margin: const EdgeInsets.symmetric(vertical: 6),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('#${order['order_ID']}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 13)),
+                  Text(
+                      '₱${(order['order_totalAmount'] ?? 0).toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          color: Color.fromARGB(255, 21, 153, 25),
+                          fontSize: 20)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('${(order['items'] as List).length} items',
+                      style: const TextStyle(
+                          fontSize: 16,
+                          color: Colors.black,
+                          fontWeight: FontWeight.w900)),
+                  Text(orderDateStr,
+                      style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                ],
+              ),
+            ],
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildOrderDetails(Map<String, dynamic> order) {
     final DateFormat displayFormat = DateFormat('MM/dd/yyyy hh:mm a');

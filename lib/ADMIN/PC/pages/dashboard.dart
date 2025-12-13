@@ -215,7 +215,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
               ),
-              _buildGenerateReportButton(),
+              // _buildGenerateReportButton(),
             ],
           ),
           const SizedBox(height: 16),
@@ -271,10 +271,10 @@ class _DashboardPageState extends State<DashboardPage> {
                 child: _buildTopSellingCard(),
               ),
               const SizedBox(width: 24),
-              Expanded(
-                flex: 2,
-                child: _buildIngredientUsageCard(),
-              ),
+              // Expanded(
+              //   flex: 2,
+              //   child: _buildIngredientUsageCard(),
+              // ),
             ],
           ),
         ],
@@ -434,27 +434,27 @@ Widget _buildSalesCard() {
 }
 
 
-  Widget _buildGenerateReportButton() {
-    return ElevatedButton(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF00B027),
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        elevation: 4,
-      ),
-      onPressed: () {},
-      child: const Text(
-        'Generate Report',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        ),
-      ),
-    );
-  }
+  // Widget _buildGenerateReportButton() {
+  //   return ElevatedButton(
+  //     style: ElevatedButton.styleFrom(
+  //       backgroundColor: const Color(0xFF00B027),
+  //       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+  //       shape: RoundedRectangleBorder(
+  //         borderRadius: BorderRadius.circular(16),
+  //       ),
+  //       elevation: 4,
+  //     ),
+  //     onPressed: () {},
+  //     child: const Text(
+  //       'Generate Report',
+  //       style: TextStyle(
+  //         fontSize: 16,
+  //         fontWeight: FontWeight.w600,
+  //         color: Colors.white,
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildOutOfStockCard() {
     return Container(
@@ -760,44 +760,44 @@ Widget _buildSalesCard() {
     });
   }
 
-  Widget _buildIngredientUsageCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: _sectionDecoration(),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Ingredient Usage',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              _buildDaysDropdown(
-                value: _ingredientDays,
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() => _ingredientDays = value);
-                },
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildIngredientUsageCard() {
+  //   return Container(
+  //     padding: const EdgeInsets.all(24),
+  //     decoration: _sectionDecoration(),
+  //     child: Column(
+  //       crossAxisAlignment: CrossAxisAlignment.start,
+  //       children: [
+  //         Row(
+  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  //           children: [
+  //             const Text(
+  //               'Ingredient Usage',
+  //               style: TextStyle(
+  //                 fontSize: 20,
+  //                 fontWeight: FontWeight.w700,
+  //               ),
+  //             ),
+  //             _buildDaysDropdown(
+  //               value: _ingredientDays,
+  //               onChanged: (value) {
+  //                 if (value == null) return;
+  //                 setState(() => _ingredientDays = value);
+  //               },
+  //             ),
+  //           ],
+  //         ),
+  //         const SizedBox(height: 16),
+  //         Container(
+  //           padding: const EdgeInsets.all(32),
+  //           decoration: BoxDecoration(
+  //             color: Colors.grey.shade100,
+  //             borderRadius: BorderRadius.circular(16),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _tableHeaderCell(String text, {int flex = 1}) {
     return Expanded(
