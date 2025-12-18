@@ -153,7 +153,7 @@ Future<String?> _fetchFullName(String userId, {bool isStaff = false}) async {
     alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
     child: Container(
       margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-      padding: const EdgeInsets.all(16), // bigger padding
+      padding: const EdgeInsets.all(16), 
       decoration: BoxDecoration(
         color: isMe ? Colors.green[300] : Colors.grey[300],
         borderRadius: BorderRadius.only(
@@ -166,17 +166,15 @@ Future<String?> _fetchFullName(String userId, {bool isStaff = false}) async {
       child: Column(
         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
-          // TEXT
           if (message['text'] != null && message['text'].isNotEmpty)
             Text(
               message['text'],
               style: const TextStyle(
-                fontSize: 18, // bigger text
+                fontSize: 18,
                 fontWeight: FontWeight.w500,
               ),
             ),
 
-          // IMAGE
           if (message['image'] != null && message['image'].isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 10),
@@ -193,7 +191,6 @@ Future<String?> _fetchFullName(String userId, {bool isStaff = false}) async {
 
           const SizedBox(height: 6),
 
-          // TIME
           Text(
             formattedTime,
             style: TextStyle(

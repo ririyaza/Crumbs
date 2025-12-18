@@ -1,7 +1,6 @@
-import 'package:final_project/database_service.dart';
+import 'package:final_project/CUSTOMER/MOBILE/mobile_login_page.dart';
 import 'package:flutter/material.dart';
-import 'mobile_login_page.dart';
-import 'pages/dashboard.dart';
+import '../../database_service.dart';
 
 class MobileRegistrationPage extends StatefulWidget {
   const MobileRegistrationPage({super.key});
@@ -11,288 +10,274 @@ class MobileRegistrationPage extends StatefulWidget {
 }
 
 class _MobileRegistrationPageState extends State<MobileRegistrationPage> {
-  final dbServices = DatabaseService();
+  final DatabaseService dbServices = DatabaseService();
   final _emailController = TextEditingController();
-  final _contactController = TextEditingController();
+  final _contactNumberController = TextEditingController();
   final _createPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  void _onGoogleSignIn() {
- 
-  }
+  String emailError = "";
+  String contactError = "";
+  String passwordError = "";
+  String confirmPasswordError = "";
 
-  void _onFacebookSignIn() {
-   
+  void _onGoogleSignIn() {}
+  void _onFacebookSignIn() {}
+
+  void _register() {
+    setState(() {
+      emailError = "";
+      contactError = "";
+      passwordError = "";
+      confirmPasswordError = "";
+    });
+
+    final email = _emailController.text.trim();
+    final contact = _contactNumberController.text.trim();
+    final password = _createPasswordController.text.trim();
+    final confirmPassword = _confirmPasswordController.text.trim();
+
+    bool hasError = false;
+
+    if (email.isEmpty) {
+      emailError = "Please enter your email/username";
+      hasError = true;
+    } else if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(email)) {
+      emailError = "Enter a valid email address";
+      hasError = true;
+    }
+
+    if (contact.isEmpty) {
+      contactError = "Please enter your contact number";
+      hasError = true;
+    } else if (!RegExp(r'^\d+$').hasMatch(contact)) {
+      contactError = "Contact number should be numeric";
+      hasError = true;
+    } else if (contact.length < 7) {
+      contactError = "Contact number is too short";
+      hasError = true;
+    }
+
+    if (password.isEmpty) {
+      passwordError = "Please create a password";
+      hasError = true;
+    } else if (password.length < 6) {
+      passwordError = "Password must be at least 6 characters";
+      hasError = true;
+    }
+
+    if (confirmPassword.isEmpty) {
+      confirmPasswordError = "Please confirm your password";
+      hasError = true;
+    } else if (confirmPassword != password) {
+      confirmPasswordError = "Passwords do not match";
+      hasError = true;
+    }
+
+    setState(() {});
+
+    if (hasError) return;
+
+      dbServices.registerUser(email,email,contact,password);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Success'),
+        content: const Text('Signed up successfully!'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MobileLoginPage(),
+                ),
+              );
+            },
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[200],
-      body: Column(
+      body: Stack(
         children: [
-          Container(
-            height: 120,
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              image: DecorationImage(
-                image: AssetImage('assets/mobile_design.png'),
-                fit: BoxFit.fill,
-                repeat: ImageRepeat.repeatX,
-                alignment: Alignment.topCenter,
-              ),
+          Positioned.fill(
+            child: Image.asset(
+              'assets/background.png',
+              fit: BoxFit.cover,
             ),
           ),
-          Expanded(
-            child: Center(
-              child: SingleChildScrollView(
-                child: Form(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                    
-                      Padding(
-                        padding: const EdgeInsets.only(top: 60.0),
-                        child: Transform.translate(
-                          offset: const Offset(0, -70),
-                          child: Image.asset(
-                            'assets/logo.png',
-                            width: 180,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+          Center(
+            child: SingleChildScrollView(
+              child: Form(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 24),
+                    Image.asset('assets/logo.png', width: 200, fit: BoxFit.contain),
+                    const SizedBox(height: 8),
+                    const Text(
+                      "Sign Up",
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 28,
+                        fontWeight: FontWeight.w900,
                       ),
-                      const SizedBox(height: 1),
-                      Transform.translate(
-                        offset: const Offset(0, -70),
-                        child: const Text(
-                          "Create an account",
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-              
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                        child: SizedBox(
-                          width: 280,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Email / Username",
-                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 8),
+                      child: SizedBox(
+                        width: 600,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Email / Username",
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _emailController,
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color.fromARGB(255, 224, 223, 223),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                               ),
-                              const SizedBox(height: 8),
-                              TextFormField(
-                                controller: _emailController,
-                                style: const TextStyle(fontSize: 20),
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: const Color.fromARGB(255, 224, 223, 223),
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-                   
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                        child: SizedBox(
-                          width: 280,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Contact Number",
-                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 8),
-                              TextFormField(
-                                controller: _contactController,
-                                style: const TextStyle(fontSize: 20),
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: const Color.fromARGB(255, 224, 223, 223),
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-                 
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                        child: SizedBox(
-                          width: 280,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Create Password",
-                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 8),
-                              TextFormField(
-                                controller: _createPasswordController,
-                                style: const TextStyle(fontSize: 20),
-                                obscureText: true,
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: const Color.fromARGB(255, 224, 223, 223),
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-                      
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 30.0),
-                        child: SizedBox(
-                          width: 280,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                "Confirm Password",
-                                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 8),
-                              TextFormField(
-                                controller: _confirmPasswordController,
-                                style: const TextStyle(fontSize: 20),
-                                obscureText: true,
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  fillColor: const Color.fromARGB(255, 224, 223, 223),
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                  border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 20),
-                     
-                      SizedBox(
-                        width: 150,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color.fromARGB(255, 40, 145, 47),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
                             ),
-                            minimumSize: const Size.fromHeight(50),
-                            textStyle: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          onPressed: () {
-    
-                            dbServices.registerUser(
-                              _emailController.text,
-                              _emailController.text,
-                              _contactController.text,
-                              _createPasswordController.text
-                            );
-                      
-                            showDialog(
-                              context: context,
-                              builder: (context) => AlertDialog(
-                                title: const Text('Success'),
-                                content: const Text('Signed up successfully!'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pop(); 
-                                      Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => const MobileDashboardPage(),
-                                        ),
-                                      );
-                                    },
-                                    child: const Text('OK'),
-                                  ),
-                                ],
+                            if (emailError.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(emailError, style: const TextStyle(color: Colors.red)),
                               ),
-                            );
-                          },
-                          child: const Text('Sign up', style: TextStyle(fontSize: 20)),
+                          ],
                         ),
                       ),
-
-                      const SizedBox(height: 10),
-                  
-                      TextButton(
-                        style: TextButton.styleFrom(
-                          foregroundColor: const Color.fromARGB(255, 159, 124, 124),
-                        ),
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (context) => const MobileLoginPage()),
-                          );
-                        },
-                        child: const Text('Cancel'),
-                      ),
-
-                      const SizedBox(height: 10),
-                  
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          InkWell(
-                            onTap: _onGoogleSignIn,
-                            child: Image.asset(
-                              'assets/google_logo.png',
-                              width: 36,
-                              height: 36,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 8),
+                      child: SizedBox(
+                        width: 600,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Contact Number",
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _contactNumberController,
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color.fromARGB(255, 224, 223, 223),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 10),
-                          IconButton(
-                            onPressed: _onFacebookSignIn,
-                            iconSize: 32,
-                            icon: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
-                          ),
-                        ],
+                            if (contactError.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(contactError, style: const TextStyle(color: Colors.red)),
+                              ),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 8),
+                      child: SizedBox(
+                        width: 600,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Create Password",
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _createPasswordController,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color.fromARGB(255, 224, 223, 223),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                            if (passwordError.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(passwordError, style: const TextStyle(color: Colors.red)),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 30.0, vertical: 8),
+                      child: SizedBox(
+                        width: 600,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text("Confirm Password",
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600)),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _confirmPasswordController,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                filled: true,
+                                fillColor: const Color.fromARGB(255, 224, 223, 223),
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
+                            ),
+                            if (confirmPasswordError.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4),
+                                child: Text(confirmPasswordError,
+                                    style: const TextStyle(color: Colors.red)),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: 150,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color.fromARGB(255, 40, 145, 47),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          minimumSize: const Size.fromHeight(47),
+                          textStyle: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        onPressed: _register,
+                        child: const Text('Sign up', style: TextStyle(fontSize: 20)),
+                      ),
+                    ),
+
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        InkWell(
+                          onTap: _onGoogleSignIn,
+                          child: Image.asset('assets/google_logo.png', width: 36, height: 36),
+                        ),
+                        const SizedBox(width: 16),
+                        IconButton(
+                          onPressed: _onFacebookSignIn,
+                          iconSize: 32,
+                          icon: const Icon(Icons.facebook, color: Color(0xFF1877F2)),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 40),
+                  ],
                 ),
               ),
             ),

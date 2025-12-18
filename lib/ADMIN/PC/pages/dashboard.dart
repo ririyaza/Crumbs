@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import '../components/pc_navbar.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -35,8 +34,10 @@ class _DashboardPageState extends State<DashboardPage> {
   StreamSubscription<DatabaseEvent>? _orderSubscription;
   String staffName = 'Staff';
   ImageProvider? staffImage;
-  int _selectedDays = 7;
-  int _ingredientDays = 7;
+
+  String _selectedWeekOption = 'This Week';
+  Map<int, int> _thisWeekSales = {};
+  Map<int, int> _lastWeekSales = {};
 
     int get totalUnitsSold {
     return _topSellingProducts.fold(0, (sum, item) {
@@ -215,7 +216,6 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                 ),
               ),
-              // _buildGenerateReportButton(),
             ],
           ),
           const SizedBox(height: 16),
@@ -271,10 +271,6 @@ class _DashboardPageState extends State<DashboardPage> {
                 child: _buildTopSellingCard(),
               ),
               const SizedBox(width: 24),
-              // Expanded(
-              //   flex: 2,
-              //   child: _buildIngredientUsageCard(),
-              // ),
             ],
           ),
         ],
@@ -295,6 +291,7 @@ class _DashboardPageState extends State<DashboardPage> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
+            // ignore: deprecated_member_use
             color: Colors.black.withOpacity(0.05),
             blurRadius: 20,
             offset: const Offset(0, 10),
@@ -338,11 +335,11 @@ class _DashboardPageState extends State<DashboardPage> {
 Widget _buildSalesCard() {
   const weekdayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-  final maxSales = weeklySales.values.isEmpty
-      ? 1
-      : weeklySales.values.reduce((a, b) => a > b ? a : b);
+  final salesData = _selectedWeekOption == 'This Week' ? _thisWeekSales : _lastWeekSales;
 
-  final step = (maxSales / 5).ceil(); 
+  final int maxSales = salesData.values.every((v) => v == 0)
+      ? 1
+      : salesData.values.reduce((a, b) => a > b ? a : b);
 
   return Container(
     padding: const EdgeInsets.all(24),
@@ -357,68 +354,62 @@ Widget _buildSalesCard() {
               'Sales',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
-            _buildDaysDropdown(
-              value: _selectedDays,
+            DropdownButton<String>(
+              value: _selectedWeekOption,
+              underline: const SizedBox(),
+              items: const [
+                DropdownMenuItem(value: 'This Week', child: Text('This Week')),
+                DropdownMenuItem(value: 'Last Week', child: Text('Last Week')),
+              ],
               onChanged: (value) {
                 if (value == null) return;
-                setState(() => _selectedDays = value);
+                setState(() {
+                  _selectedWeekOption = value;
+                  weeklySales = value == 'This Week' ? _thisWeekSales : _lastWeekSales;
+                });
               },
             ),
           ],
         ),
         const SizedBox(height: 24),
         SizedBox(
-          height: 320,
+          height: 260,
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Column(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(6, (index) {
-                  final labelValue = step * (5 - index);
-                  return Text(
-                    '₱$labelValue',
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                  );
+                children: List.generate(6, (i) {
+                  final value = (maxSales / 5 * (5 - i)).round();
+                  return Text('₱$value', style: const TextStyle(fontSize: 12, color: Colors.grey));
                 }),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 12),
               Expanded(
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: List.generate(7, (index) {
-                    final sales = weeklySales[index + 1] ?? 0;
-                    final barHeight = maxSales == 0
-                        ? 0.0
-                        : (sales / maxSales) * 180; 
+                    final sales = salesData[index + 1] ?? 0;
+                    final barHeight = (sales / maxSales) * 180;
 
                     return Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Text(
-                          '₱$sales',
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        Text('₱$sales', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                         const SizedBox(height: 6),
                         Container(
-                          width: 20,
-                          height: barHeight,
+                          width: 24,
+                          height: barHeight.isNaN ? 0 : barHeight,
                           decoration: BoxDecoration(
-                            color: Colors.green[400],
+                            color: Colors.green.shade400,
                             borderRadius: BorderRadius.circular(6),
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: 6),
                         Text(
                           weekdayLabels[index],
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[700],
-                          ),
+                          style: TextStyle(fontSize: 13, color: Colors.grey.shade700),
                         ),
                       ],
                     );
@@ -432,29 +423,6 @@ Widget _buildSalesCard() {
     ),
   );
 }
-
-
-  // Widget _buildGenerateReportButton() {
-  //   return ElevatedButton(
-  //     style: ElevatedButton.styleFrom(
-  //       backgroundColor: const Color(0xFF00B027),
-  //       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-  //       shape: RoundedRectangleBorder(
-  //         borderRadius: BorderRadius.circular(16),
-  //       ),
-  //       elevation: 4,
-  //     ),
-  //     onPressed: () {},
-  //     child: const Text(
-  //       'Generate Report',
-  //       style: TextStyle(
-  //         fontSize: 16,
-  //         fontWeight: FontWeight.w600,
-  //         color: Colors.white,
-  //       ),
-  //     ),
-  //   );
-  // }
 
   Widget _buildOutOfStockCard() {
     return Container(
@@ -520,7 +488,7 @@ Widget _buildSalesCard() {
     const int totalValueFlex = 1;
     const int statusFlex = 2;
 
-    Widget _buildStockStatus(int inStock) {
+    Widget buildStockStatus(int inStock) {
       Color bgColor;
       Color borderColor;
       String statusText;
@@ -659,8 +627,6 @@ Widget _buildSalesCard() {
           const Divider(),
           ..._topSellingProducts.map((row) {
             int inStock = int.tryParse(row['inStock'].toString()) ?? 0;
-            double unitPrice = double.tryParse(row['unitPrice'].toString()) ?? 0.0;
-            double totalValue = inStock * unitPrice;
 
             return Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -716,88 +682,86 @@ Widget _buildSalesCard() {
                     flex: statusFlex,
                     child: Align(
                       alignment: Alignment.center,
-                      child: _buildStockStatus(inStock),
+                      child: buildStockStatus(inStock),
                     ),
                   ),
                 ],
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );
   }
 
   void fetchWeeklySales() {
-    _orderSubscription = orderRef.onValue.listen((event) {
-      final snapshot = event.snapshot;
-      Map<int, int> salesMap = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
-      if (snapshot.exists) {
-        for (var child in snapshot.children) {
-          final data = child.value as Map<dynamic, dynamic>;
-          if (data['order_createdAt'] != null) {
-            DateTime orderDate = DateTime.tryParse(data['order_createdAt']) ?? DateTime.now();
-            int weekday = orderDate.weekday;
+  _orderSubscription = orderRef.onValue.listen((event) {
+    final snapshot = event.snapshot;
 
-            if (data['items'] != null) {
-              double orderTotal = 0.0;
-              final items = data['items'] as Map<dynamic, dynamic>;
-              for (var item in items.values) {
-                String priceStr = item['product_price']?.toString() ?? '0';
-                priceStr = priceStr.replaceAll(RegExp(r'[^\d.]'), '');
-                double unitPrice = double.tryParse(priceStr) ?? 0.0;
-                int quantity = int.tryParse(item['product_quantity']?.toString() ?? '0') ?? 0;
-                orderTotal += unitPrice * quantity;
-              }
-              salesMap[weekday] = (salesMap[weekday] ?? 0) + orderTotal.toInt();
-            }
-          }
+    Map<int, int> thisWeekMap = {1:0,2:0,3:0,4:0,5:0,6:0,7:0};
+    Map<int, int> lastWeekMap = {1:0,2:0,3:0,4:0,5:0,6:0,7:0};
+
+    if (!snapshot.exists) {
+      setState(() {
+        _thisWeekSales = thisWeekMap;
+        _lastWeekSales = lastWeekMap;
+        weeklySales = thisWeekMap;
+      });
+      return;
+    }
+
+    final now = DateTime.now();
+    final startOfThisWeek = now.subtract(Duration(days: now.weekday - 1));
+    final startOfLastWeek = startOfThisWeek.subtract(Duration(days: 7));
+
+    for (final orderSnap in snapshot.children) {
+      if (orderSnap.value is! Map) continue;
+      final data = orderSnap.value as Map;
+
+      final status = data['order_status']?.toString().toLowerCase();
+      if (status != 'completed') continue;
+
+      final createdAt = data['order_createdAt'];
+      if (createdAt == null) continue;
+
+      final orderDate = DateTime.tryParse(createdAt.toString());
+      if (orderDate == null) continue;
+
+      final itemsRaw = data['items'];
+      if (itemsRaw == null) continue;
+
+      double orderTotal = 0;
+      if (itemsRaw is List) {
+        for (final item in itemsRaw) {
+          if (item is! Map) continue;
+          final price = double.tryParse(item['product_price']?.toString() ?? '0') ?? 0;
+          final qty = int.tryParse(item['product_quantity']?.toString() ?? '0') ?? 0;
+          orderTotal += price * qty;
+        }
+      } else if (itemsRaw is Map) {
+        for (final item in itemsRaw.values) {
+          if (item is! Map) continue;
+          final price = double.tryParse(item['product_price']?.toString() ?? '0') ?? 0;
+          final qty = int.tryParse(item['product_quantity']?.toString() ?? '0') ?? 0;
+          orderTotal += price * qty;
         }
       }
-      setState(() {
-        weeklySales = salesMap;
-      });
-    });
-  }
 
-  // Widget _buildIngredientUsageCard() {
-  //   return Container(
-  //     padding: const EdgeInsets.all(24),
-  //     decoration: _sectionDecoration(),
-  //     child: Column(
-  //       crossAxisAlignment: CrossAxisAlignment.start,
-  //       children: [
-  //         Row(
-  //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-  //           children: [
-  //             const Text(
-  //               'Ingredient Usage',
-  //               style: TextStyle(
-  //                 fontSize: 20,
-  //                 fontWeight: FontWeight.w700,
-  //               ),
-  //             ),
-  //             _buildDaysDropdown(
-  //               value: _ingredientDays,
-  //               onChanged: (value) {
-  //                 if (value == null) return;
-  //                 setState(() => _ingredientDays = value);
-  //               },
-  //             ),
-  //           ],
-  //         ),
-  //         const SizedBox(height: 16),
-  //         Container(
-  //           padding: const EdgeInsets.all(32),
-  //           decoration: BoxDecoration(
-  //             color: Colors.grey.shade100,
-  //             borderRadius: BorderRadius.circular(16),
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
+      if (orderDate.isAfter(startOfThisWeek.subtract(const Duration(seconds: 1)))) {
+        thisWeekMap[orderDate.weekday] = (thisWeekMap[orderDate.weekday] ?? 0) + orderTotal.toInt();
+      } else if (orderDate.isAfter(startOfLastWeek.subtract(const Duration(seconds: 1))) &&
+                 orderDate.isBefore(startOfThisWeek)) {
+        lastWeekMap[orderDate.weekday] = (lastWeekMap[orderDate.weekday] ?? 0) + orderTotal.toInt();
+      }
+    }
+
+    setState(() {
+      _thisWeekSales = thisWeekMap;
+      _lastWeekSales = lastWeekMap;
+      weeklySales = _selectedWeekOption == 'This Week' ? _thisWeekSales : _lastWeekSales;
+    });
+  });
+}
 
   Widget _tableHeaderCell(String text, {int flex = 1}) {
     return Expanded(
@@ -832,37 +796,12 @@ Widget _buildSalesCard() {
       borderRadius: BorderRadius.circular(24),
       boxShadow: [
         BoxShadow(
+          // ignore: deprecated_member_use
           color: Colors.black.withOpacity(0.05),
           blurRadius: 20,
           offset: const Offset(0, 10),
         ),
       ],
-    );
-  }
-
-  Widget _buildDaysDropdown({
-    required int value,
-    required ValueChanged<int?> onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: DropdownButton<int>(
-        value: value,
-        underline: const SizedBox(),
-        icon: const Icon(Icons.keyboard_arrow_down_rounded),
-        items: List.generate(
-          7,
-          (index) => DropdownMenuItem<int>(
-            value: index + 1,
-            child: Text('${index + 1} days'),
-          ),
-        ),
-        onChanged: onChanged,
-      ),
     );
   }
 

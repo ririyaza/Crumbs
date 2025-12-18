@@ -6,8 +6,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 
 class MessagePage extends StatefulWidget {
-  final String customerId;       // Logged-in customer ID
-  final String customerAvatar;   // Optional customer avatar
+  final String customerId;   
+  final String customerAvatar;  
 
   const MessagePage({super.key, required this.customerId, required this.customerAvatar});
 
@@ -23,7 +23,6 @@ class _MessagePageState extends State<MessagePage> {
   String? adminName;
   String? adminAvatar;
 
-  // Chat variables
   TextEditingController _messageController = TextEditingController();
   Uint8List? _pickedImage;
   late String chatRoomId;
@@ -164,11 +163,10 @@ class _MessagePageState extends State<MessagePage> {
 
     return Scaffold(
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(70), // taller header
+        preferredSize: const Size.fromHeight(70),
         child: AppBar(
           backgroundColor: const Color.fromARGB(255, 223, 217, 217),
           elevation: 1,
-          // Back button removed
           title: Row(
             children: [
               CircleAvatar(
@@ -233,7 +231,6 @@ class _MessagePageState extends State<MessagePage> {
                 ],
               ),
             ),
-          // Bottom input area
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             color: Colors.white,

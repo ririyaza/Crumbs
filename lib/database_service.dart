@@ -7,6 +7,8 @@ class DatabaseService {
   final DatabaseReference _firebaseDatabase = FirebaseDatabase.instance.ref();
   DatabaseReference get firebaseDatabase => _firebaseDatabase;
 
+  get db => null;
+
   Future<void> create({
     required String path,
     required Map<String, dynamic> data,
@@ -173,7 +175,6 @@ class DatabaseService {
     final dbPassword = data['staff_password']?.toString() ?? '';
 
     if (dbUsername == username && dbPassword == password) {
-      // Return a Map<String, dynamic> instead of true
       return Map<String, dynamic>.from(data);
     }
   }

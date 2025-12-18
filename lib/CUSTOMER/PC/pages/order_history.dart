@@ -62,10 +62,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
   final newKey = (lastKey + 1).toString().padLeft(2, '0');
   final newOrderRef = dbRef.child(newKey);
 
-  final randomOrderId = (100000000 +
-          (DateTime.now().millisecondsSinceEpoch % 900000000))
-      .toString();
+  final randomOrderId = (100000000 + (DateTime.now().millisecondsSinceEpoch % 900000000)).toString();
   final now = DateTime.now();
+
 
   Map<String, dynamic> newOrder = {
     'order_ID': randomOrderId,
@@ -86,14 +85,13 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
         'product_flavor': product['product_flavor'],
         'product_price': product['product_price'],
         'product_quantity': product['product_quantity'],
-        'product_image': product['product_image'],
+        'product_image': product['product_image'], 
       };
     }).toList(),
   };
 
   await newOrderRef.set(newOrder);
 
-  // Return the new order after processing it like _processOrderItem
   return _processOrderItem({
     'order_ID': newOrder['order_ID'],
     'customer_ID': newOrder['customer_ID'],
@@ -113,6 +111,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
 
 
 
+
   void showReorderSuccessModal(Map<String, dynamic> order) {
   final screenWidth = MediaQuery.of(context).size.width;
   final screenHeight = MediaQuery.of(context).size.height;
@@ -124,15 +123,14 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: ConstrainedBox(
           constraints: BoxConstraints(
-            maxWidth: screenWidth * 0.3, // make modal narrower
-            maxHeight: screenHeight * 0.9, // make modal shorter
+            maxWidth: screenWidth * 0.3, 
+            maxHeight: screenHeight * 0.9, 
           ),
           child: Padding(
-            padding: const EdgeInsets.all(12), // slightly smaller padding
+            padding: const EdgeInsets.all(12), 
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Green Circle with Check Icon
                 Container(
                   width: 60,
                   height: 60,
@@ -150,7 +148,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                 ),
                 const SizedBox(height: 16),
 
-                // Product table header
                 Row(
                   children: const [
                     Expanded(flex: 1, child: Text('QTY', style: TextStyle(fontWeight: FontWeight.bold))),
@@ -161,9 +158,9 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                 ),
                 const Divider(),
 
-                // Product list inside scrollable box
+              
                 SizedBox(
-                  height: 330, // adjust table height
+                  height: 330, 
                   child: SingleChildScrollView(
                     child: Column(
                       children: List.generate(order['products'].length, (index) {
@@ -189,7 +186,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                 ),
                 const Divider(height: 20),
 
-                // Order Summary
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(8),
@@ -231,7 +227,6 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                 ),
                 const SizedBox(height: 12),
 
-                // Close button
                 ElevatedButton(
                   onPressed: () => Navigator.of(context).pop(),
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
@@ -295,6 +290,7 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
             'product_flavor': product['product_flavor'] ?? '',
             'product_price': double.tryParse(product['product_price']?.toString() ?? "0") ?? 0.0,
             'product_quantity': productQty,
+            'product_image': product['product_image'] ?? '',
           });
         }
       }
@@ -457,30 +453,28 @@ class _OrderHistoryPageState extends State<OrderHistoryPage> {
                                     ),
                                   ),
                                   content: const Text('Are you sure you want to order this again?'),
-                                  actionsAlignment: MainAxisAlignment.spaceBetween, // space buttons evenly
+                                  actionsAlignment: MainAxisAlignment.spaceBetween, 
                                   actions: [
                                     OutlinedButton(
                                       onPressed: () {
-                                        Navigator.of(context).pop(); // Close the modal
+                                        Navigator.of(context).pop();
                                       },
                                       style: OutlinedButton.styleFrom(
-                                        side: const BorderSide(color: Colors.black), // black border
+                                        side: const BorderSide(color: Colors.black),
                                       ),
                                       child: const Text('Cancel', style: TextStyle(color: Colors.black)),
                                     ),
                                   ElevatedButton(
                                   onPressed: () async {
-                                  Navigator.of(context).pop(); // Close Confirm dialog
+                                  Navigator.of(context).pop(); 
 
-                                  // Create new order and get it back
+                            
                                   Map<String, dynamic> newOrder = await reorder(order);
 
-                                  // Add new order to the list and refresh UI
                                   setState(() {
-                                    _orders.insert(0, newOrder); // insert at the top
+                                    _orders.insert(0, newOrder); 
                                   });
 
-                                  // Show success modal
                                   showReorderSuccessModal(newOrder);
                                 },
                                 style: ElevatedButton.styleFrom(
@@ -574,7 +568,7 @@ void showOrderDetailsModal(Map<String, dynamic> order) {
                           children: [
                             Expanded(
                               flex: 5,
-                              child: Text('${product['product_name']}${product['product_flavor'].isNotEmpty ? " - ${product['product_flavor']}" : ""}'),
+                              child: Text(product['product_name']),
                             ),
                             Expanded(
                               flex: 2,

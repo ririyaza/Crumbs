@@ -25,7 +25,6 @@ class _MessagePageState extends State<MessagePage> {
 
   List<Map<String, dynamic>> customers = [];
 
-  // ChatPage variables
   TextEditingController _messageController = TextEditingController();
   Uint8List? _pickedImage;
   late String chatRoomId;
@@ -40,7 +39,6 @@ class _MessagePageState extends State<MessagePage> {
     _fetchCustomers();
   }
 
-  // Fetch customers for staff
   void _fetchCustomers() {
     _customerRef.onValue.listen((event) {
       if (!event.snapshot.exists) {
@@ -64,7 +62,6 @@ class _MessagePageState extends State<MessagePage> {
     });
   }
 
-  // Chat helpers
   String _getChatRoomId(String userA, String userB) {
     return userA.hashCode <= userB.hashCode ? '$userA\_$userB' : '$userB\_$userA';
   }
@@ -81,27 +78,6 @@ class _MessagePageState extends State<MessagePage> {
           final idField = isStaff ? entry['staff_id'] : entry['customer_id'];
           if (idField.toString() == userId) {
             return entry['profile_image']?.toString();
-          }
-        }
-      }
-    }
-    return null;
-  }
-
-  Future<String?> _fetchFullName(String userId, {bool isStaff = false}) async {
-    final node = isStaff ? 'Staff' : 'Customer';
-    final snapshot = await _db.child(node).get();
-    if (!snapshot.exists) return null;
-
-    final value = snapshot.value;
-    if (value is List) {
-      for (var entry in value) {
-        if (entry is Map) {
-          final idField = isStaff ? entry['staff_id'] : entry['customer_id'];
-          if (idField.toString() == userId) {
-            final firstName = isStaff ? entry['staff_Fname'] : entry['customer_Fname'];
-            final lastName = isStaff ? entry['staff_Lname'] : entry['customer_Lname'];
-            return '$firstName $lastName'.trim();
           }
         }
       }
@@ -221,7 +197,6 @@ class _MessagePageState extends State<MessagePage> {
 
   @override
   Widget build(BuildContext context) {
-    // Chat view
     if (selectedCustomerId != null) {
       return Scaffold(
         appBar: PreferredSize(
@@ -304,7 +279,6 @@ class _MessagePageState extends State<MessagePage> {
                   ],
                 ),
               ),
-            // Bottom input area
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
               color: Colors.white,
@@ -359,7 +333,6 @@ class _MessagePageState extends State<MessagePage> {
       );
     }
 
-    // Customer list view
     if (customers.isEmpty) {
       return const Center(child: Text("No customers found"));
     }

@@ -319,7 +319,7 @@ Future<void> fetchRecentOrders() async {
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
-                                  product['product_price'],
+                                  '₱${double.tryParse(product['product_price'].toString())?.toStringAsFixed(2) ?? '0.00'}',
                                   style: const TextStyle(fontSize: 16, color: Colors.green, fontWeight: FontWeight.bold),
                                 ),
                               ],

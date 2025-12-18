@@ -553,24 +553,6 @@ void fetchProducts() {
   });
 }
 
-Future<int> _generateNextProductId() async {
-  final snapshot = await productRef.get();
-
-  int maxId = 0;
-
-  if (snapshot.exists) {
-    for (var child in snapshot.children) {
-      final data = child.value as Map<dynamic, dynamic>;
-      int id = int.tryParse(data['product_id'].toString()) ?? 0;
-      if (id > maxId) maxId = id;
-    }
-  }
-
-  return maxId + 1;
-}
-
-
-
 void _showAddNewProductDialog(BuildContext context) {
   final TextEditingController nameController = TextEditingController();
   final TextEditingController priceController = TextEditingController();

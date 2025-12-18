@@ -9,14 +9,12 @@ class OrderSummaryPanel extends StatelessWidget {
   final String selectedPayment;
 
   const OrderSummaryPanel({super.key, required this.selectedPayment});
-
+  
   @override
   Widget build(BuildContext context) {
     final cartManager = context.watch<CartManager>();
-
     return Container(
       padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(right: 32),
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(16),
@@ -322,91 +320,103 @@ class OrderSummaryPanel extends StatelessWidget {
           const SizedBox(height: 16),
 
           SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    cartManager.pickupTime != null ? Colors.green : Colors.grey,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              onPressed: cartManager.pickupTime == null
-                  ? null
-                  : () async {
-                      final cartManager = context.read<CartManager>();
+  width: double.infinity,
+  child: ElevatedButton(
+    style: ElevatedButton.styleFrom(
+      backgroundColor: cartManager.pickupTime != null ? Colors.green : Colors.grey,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    ),
+    onPressed: cartManager.pickupTime == null
+        ? null
+        : () async {
+            final cartManager = context.read<CartManager>();
 
-                      if (cartManager.cartItems.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Cart is empty!")),
-                        );
-                        return;
-                      }
+            if (cartManager.cartItems.isEmpty) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Cart is empty!")),
+              );
+              return;
+            }
 
-                      final dbRef = FirebaseDatabase.instance.ref().child('Order');
+            final dbRef = FirebaseDatabase.instance.ref().child('Order');
 
-                      try {
-                        final snapshot = await dbRef.get();
-                        int lastKey = 0;
+            try {
+              final snapshot = await dbRef.get();
+              int lastKey = 0;
 
-                        if (snapshot.exists && snapshot.value is Map) {
-                          final orders = Map<String, dynamic>.from(snapshot.value as Map);
-                          for (var key in orders.keys) {
-                            final parsed = int.tryParse(key) ?? 0;
-                            if (parsed > lastKey) lastKey = parsed;
-                          }
-                        }
+              if (snapshot.exists && snapshot.value is Map) {
+                final orders = Map<String, dynamic>.from(snapshot.value as Map);
+                for (var key in orders.keys) {
+                  final parsed = int.tryParse(key) ?? 0;
+                  if (parsed > lastKey) lastKey = parsed;
+                }
+              }
 
-                        final newKey = (lastKey + 1).toString().padLeft(2, '0');
-                        final randomOrderId = (100000000 +
-                                (DateTime.now().millisecondsSinceEpoch % 900000000))
-                            .toString();
-                        final now = DateTime.now();
+              final newKey = (lastKey + 1).toString().padLeft(2, '0');
+              final randomOrderId =
+                  (100000000 + (DateTime.now().millisecondsSinceEpoch % 900000000))
+                      .toString();
+              final now = DateTime.now();
 
-                        final orderData = {
-                          'order_ID': randomOrderId,
-                          'customer_ID': cartManager.customerId,
-                          'customer_name': cartManager.customerName,
-                          'order_schedulePickup': cartManager.pickupTime!.toIso8601String(),
-                          'order_paymentMethod': cartManager.selectedPayment,
-                          'order_subtotal': cartManager.subTotal,
-                          'order_tax': cartManager.tax,
-                          'order_totalAmount': cartManager.total,
-                          'order_createdAt': now.toIso8601String(),
-                          'order_updatedAt': now.toIso8601String(),
-                          'order_status': 'Pending',
-                          'items': cartManager.cartItems
-                              .map((item) => {
-                                    'product_ID': item['id'],
-                                    'product_name': item['name'],
-                                    'product_quantity': item['quantity'],
-                                    'product_price': item['price'],
-                                    'product_flavor': item['flavor'] ?? '',
-                                    'product_image': base64Encode(item['image']),
-                                  })
-                              .toList(),
-                        };
+              final orderData = {
+                'order_ID': randomOrderId,
+                'customer_ID': cartManager.customerId,
+                'customer_name': cartManager.customerName,
+                'order_schedulePickup': cartManager.pickupTime!.toIso8601String(),
+                'order_paymentMethod': cartManager.selectedPayment,
+                'order_subtotal': cartManager.subTotal,
+                'order_tax': cartManager.tax,
+                'order_totalAmount': cartManager.total,
+                'order_createdAt': now.toIso8601String(),
+                'order_updatedAt': now.toIso8601String(),
+                'order_status': 'Pending',
+                'items': cartManager.cartItems
+                    .map((item) => {
+                          'product_ID': item['id'],
+                          'product_name': item['name'],
+                          'product_quantity': item['quantity'],
+                          'product_price': item['price'],
+                          'product_flavor': item['flavor'] ?? '',
+                          'product_image': base64Encode(item['image']),
+                        })
+                    .toList(),
+              };
 
-                        await dbRef.child(newKey).set(orderData);
-                        cartManager.clearCart();
+              await dbRef.child(newKey).set(orderData);
+              cartManager.clearCart();
 
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text("Order has been successfully placed!")),
-                        );
-                      } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Failed to place order: $e")),
-                        );
-                      }
-                    },
-              child: const Text(
-                "Place Order",
-                style: TextStyle(fontSize: 16, color: Colors.white),
-              ),
-            ),
-          ),
+              showDialog(
+                context: context,
+                barrierDismissible: true,
+                builder: (context) {
+                  return AlertDialog(
+                    title: const Text("Order Placed"),
+                    content: const Text("Your order has been successfully placed!"),
+                    actions: [
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                        child: const Text("OK"),
+                      ),
+                    ],
+                  );
+                },
+              );
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text("Failed to place order: $e")),
+              );
+            }
+          },
+    child: const Text(
+      "Place Order",
+      style: TextStyle(fontSize: 16, color: Colors.white),
+    ),
+  ),
+)
         ],
       ),
     );

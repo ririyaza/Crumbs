@@ -62,6 +62,7 @@ class _PcLoginPageState extends State<PcLoginPage> {
     final staffId = staffInfo['staff_id'].toString();
 
     Navigator.pushReplacement(
+      // ignore: use_build_context_synchronously
       context,
       PageRouteBuilder(
         pageBuilder: (context, a, b) => DashboardPage(

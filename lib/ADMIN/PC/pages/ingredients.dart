@@ -84,48 +84,6 @@ class _IngredientsPageState extends State<IngredientsPage> {
     );
   }
 
-   Widget _buildEditableCell({
-  required int value,
-  required bool isEditing,
-  required Function(int) onChanged,
-}) {
-  if (!isEditing) {
-    return Center(child: Text(value.toString(), style: const TextStyle(fontSize: 15)));
-  }
-
-  return Row(
-    mainAxisAlignment: MainAxisAlignment.center,
-    children: [
-      GestureDetector(
-        onTap: () => onChanged(value - 1 < 0 ? 0 : value - 1),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.grey.shade300,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          child: const Icon(Icons.remove, size: 16),
-        ),
-      ),
-      const SizedBox(width: 4),
-      Text(value.toString(), style: const TextStyle(fontSize: 15)),
-      const SizedBox(width: 4),
-      GestureDetector(
-        onTap: () => onChanged(value + 1),
-        child: Container(
-          decoration: BoxDecoration(
-            color: Colors.grey.shade300,
-            borderRadius: BorderRadius.circular(4),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-          child: const Icon(Icons.add, size: 16),
-        ),
-      ),
-    ],
-  );
-}
-
-
   String getStatus(int available) {
   if (available > 0 && available < 20) {
     return 'Re-stock';
@@ -288,23 +246,6 @@ Widget _buildTableRows() {
       int reserved = int.tryParse(item['ingredientsReserved'] ?? '0') ?? 0;
       int available = int.tryParse(item['ingredientsAvailable'] ?? '0') ?? 0;
       int threshold = int.tryParse(item['ingredientsThreshold'] ?? '0') ?? 0;
-
-      String statusText;
-      Color statusColor;
-
-      if (currentStock > 0 && currentStock < 20) {
-        statusText = 'Re-stock';
-        statusColor = Colors.red;
-      } else if (currentStock >= 20 && currentStock <= 30) {
-        statusText = 'LOW';
-        statusColor = Colors.orange;
-      } else if (currentStock > 30) {
-        statusText = 'OK';
-        statusColor = Colors.green;
-      } else {
-        statusText = 'Out of Stock';
-        statusColor = Colors.grey;
-      }
 
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: _rowSpacing / 2),

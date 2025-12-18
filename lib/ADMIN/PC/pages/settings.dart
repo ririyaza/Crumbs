@@ -293,6 +293,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
                     widget.onProfileUpdate('$fName $lName', imageBytes);
 
+                    // ignore: use_build_context_synchronously
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Profile updated!")),
                     );
@@ -341,6 +342,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
                 widget.onProfileUpdate('Staff', base64Decode(defaultImageBase64));
 
+                // ignore: use_build_context_synchronously
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text("Profile reset to default!")),
                 );
